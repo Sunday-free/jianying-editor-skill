@@ -10,11 +10,14 @@ from unittest.mock import patch
 current_dir = os.path.dirname(os.path.abspath(__file__))
 skill_root = os.path.dirname(current_dir)
 scripts_path = os.path.join(skill_root, "scripts")
+vendor_path = os.path.join(scripts_path, "vendor")
 if scripts_path not in sys.path:
     sys.path.insert(0, scripts_path)
+if vendor_path not in sys.path:
+    sys.path.insert(0, vendor_path)
 
 from cloud_manager import CloudManager
-from core.mocking_ops import MockAudioMaterial
+from core.mocking_ops import MockAudioMaterial, MockVideoMaterial
 from draft_inspector import cmd_summary
 from jy_wrapper import JyProject, draft
 from utils.formatters import safe_tim
@@ -181,6 +184,24 @@ class TestJyWrapper(unittest.TestCase):
         self.assertTrue(res["ok"], res.get("reason"))
         self.assertEqual(res["data"]["name"], "TestInspectorInfo")
         self.assertGreaterEqual(res["data"]["track_count"], 1)
+
+    def test_13_late_transition_material_registered(self):
+        """测试片段上轨后再添加转场时，保存前能补齐转场素材"""
+        p = JyProject("TestLateTransition", drafts_root=self.test_output, overwrite=True)
+        p._ensure_track(draft.TrackType.video, "V1")
+        mat = MockVideoMaterial("video_mat", 3000000, "Video", "video.mp4")
+        mat.width = 1920
+        mat.height = 1080
+        seg = draft.VideoSegment(mat, draft.trange(0, 3000000))
+
+        p.script.add_segment(seg, "V1")
+        self.assertEqual(len(p.script.materials.transitions), 0)
+
+        seg.add_transition(next(iter(draft.TransitionType)), duration="0.5s")
+        p.script.register_all_segment_extras()
+
+        self.assertEqual(len(p.script.materials.transitions), 1)
+        self.assertEqual(p.script.materials.transitions[0].global_id, seg.transition.global_id)
 
     @classmethod
     def tearDownClass(cls):

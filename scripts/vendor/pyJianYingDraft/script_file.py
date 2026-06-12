@@ -260,6 +260,58 @@ class ScriptFile:
             raise TypeError("错误的素材类型: '%s'" % type(material))
         return self
 
+    @staticmethod
+    def _has_item_by_attr(items: List[Any], item: Any, attr_name: str) -> bool:
+        item_id = getattr(item, attr_name, None)
+        return item_id is not None and any(getattr(existing, attr_name, None) == item_id for existing in items)
+
+    def register_segment_extras(self, segment: BaseSegment) -> None:
+        """Register side materials added after a segment was placed on a track."""
+        if isinstance(segment, VideoSegment):
+            if segment.animations_instance is not None and segment.animations_instance not in self.materials:
+                self.materials.animations.append(segment.animations_instance)
+            if segment.fade is not None and segment.fade not in self.materials:
+                self.materials.audio_fades.append(segment.fade)
+            for effect in segment.effects:
+                if effect not in self.materials:
+                    self.materials.video_effects.append(effect)
+            for filter_ in segment.filters:
+                if filter_ not in self.materials:
+                    self.materials.filters.append(filter_)
+            if segment.mask is not None and not any(
+                mask.get("id") == segment.mask.global_id for mask in self.materials.masks
+            ):
+                self.materials.masks.append(segment.mask.export_json())
+            if segment.transition is not None and segment.transition not in self.materials:
+                self.materials.transitions.append(segment.transition)
+            if segment.background_filling is not None and not self._has_item_by_attr(
+                self.materials.canvases, segment.background_filling, "global_id"
+            ):
+                self.materials.canvases.append(segment.background_filling)
+            if not self._has_item_by_attr(self.materials.speeds, segment.speed, "global_id"):
+                self.materials.speeds.append(segment.speed)
+        elif isinstance(segment, AudioSegment):
+            if segment.fade is not None and segment.fade not in self.materials:
+                self.materials.audio_fades.append(segment.fade)
+            for effect in segment.effects:
+                if effect not in self.materials:
+                    self.materials.audio_effects.append(effect)
+            if not self._has_item_by_attr(self.materials.speeds, segment.speed, "global_id"):
+                self.materials.speeds.append(segment.speed)
+        elif isinstance(segment, TextSegment):
+            if segment.animations_instance is not None and segment.animations_instance not in self.materials:
+                self.materials.animations.append(segment.animations_instance)
+            if segment.bubble is not None and segment.bubble not in self.materials:
+                self.materials.filters.append(segment.bubble)
+            if segment.effect is not None and segment.effect not in self.materials:
+                self.materials.filters.append(segment.effect)
+
+    def register_all_segment_extras(self) -> None:
+        """Ensure side materials stay in sync with segments before exporting."""
+        for track in self.tracks.values():
+            for segment in track.segments:
+                self.register_segment_extras(segment)
+
     def add_track(self, track_type: TrackType, track_name: Optional[str] = None, *,
                   mute: bool = False,
                   relative_index: int = 0, absolute_index: Optional[int] = None) -> "ScriptFile":
@@ -802,6 +854,7 @@ class ScriptFile:
 
     def dumps(self) -> str:
         """将草稿文件内容导出为JSON字符串"""
+        self.register_all_segment_extras()
         self.content["fps"] = self.fps
         self.content["duration"] = self.duration
         self.content["config"]["maintrack_adsorb"] = self.maintrack_adsorb
