@@ -4,7 +4,7 @@ import json
 import uuid
 from copy import deepcopy
 
-from typing import Dict, Tuple, Any
+from typing import Dict, Tuple, Any, List
 from typing import Union, Optional, Literal
 
 from .time_util import Timerange, tim
@@ -252,6 +252,82 @@ class TextShadow:
             "angle": self.angle
         }
 
+class RichTextSpan:
+    """一段文字范围的独立样式定义"""
+    
+    start: int
+    """文字起始索引"""
+    end: int
+    """文字结束索引 (不包含)"""
+    
+    color: Optional[Tuple[float, float, float]]
+    """文字颜色, RGB三元组, 取值范围为[0, 1]"""
+    size: Optional[float]
+    """字体大小"""
+    bold: Optional[bool]
+    """是否加粗"""
+    italic: Optional[bool]
+    """是否斜体"""
+    underline: Optional[bool]
+    """是否下划线"""
+
+    def __init__(self, start: int, end: int, style: Optional[TextStyle] = None, *,
+                 color: Optional[Tuple[float, float, float]] = None,
+                 size: Optional[float] = None,
+                 bold: Optional[bool] = None,
+                 italic: Optional[bool] = None,
+                 underline: Optional[bool] = None):
+        """
+        Args:
+            start (`int`): 文字起始索引
+            end (`int`): 文字结束索引 (不包含)
+            style (`TextStyle`, optional): 基础样式对象
+            color (`Tuple[float, float, float]`, optional): 覆盖颜色
+            size (`float`, optional): 覆盖字体大小
+            bold (`bool`, optional): 覆盖是否加粗
+            italic (`bool`, optional): 覆盖是否斜体
+            underline (`bool`, optional): 覆盖是否下划线
+        """
+        self.start = start
+        self.end = end
+        
+        # 如果提供了 style 对象，先提取属性
+        if style:
+            self.color = style.color
+            self.size = style.size
+            self.bold = style.bold
+            self.italic = style.italic
+            self.underline = style.underline
+        else:
+            self.color = color
+            self.size = size
+            self.bold = bold
+            self.italic = italic
+            self.underline = underline
+            
+        # 覆盖层：如果显式提供了关键字参数，则进一步覆盖
+        if color is not None: self.color = color
+        if size is not None: self.size = size
+        if bold is not None: self.bold = bold
+        if italic is not None: self.italic = italic
+        if underline is not None: self.underline = underline
+
+    def apply_to_style(self, base_style: Dict[str, Any]) -> Dict[str, Any]:
+        """将当前 span 的属性应用到基础样式字典副本中"""
+        new_style = deepcopy(base_style)
+        new_style["range"] = [self.start, self.end]
+        if self.color is not None:
+            new_style["fill"]["content"]["solid"]["color"] = list(self.color)
+        if self.size is not None:
+            new_style["size"] = self.size
+        if self.bold is not None:
+            new_style["bold"] = self.bold
+        if self.italic is not None:
+            new_style["italic"] = self.italic
+        if self.underline is not None:
+            new_style["underline"] = self.underline
+        return new_style
+
 class TextSegment(VisualSegment):
     """文本片段类, 目前仅支持设置基本的字体样式"""
 
@@ -278,7 +354,8 @@ class TextSegment(VisualSegment):
                  font: Optional[FontType] = None,
                  style: Optional[TextStyle] = None, clip_settings: Optional[ClipSettings] = None,
                  border: Optional[TextBorder] = None, background: Optional[TextBackground] = None,
-                 shadow: Optional[TextShadow] = None):
+                 shadow: Optional[TextShadow] = None,
+                 rich_spans: Optional[List[RichTextSpan]] = None):
         """创建文本片段, 并指定其时间信息、字体样式及图像调节设置
 
         片段创建完成后, 可通过`ScriptFile.add_segment`方法将其添加到轨道中
@@ -292,12 +369,14 @@ class TextSegment(VisualSegment):
             border (`TextBorder`, optional): 文本描边参数, 默认无描边
             background (`TextBackground`, optional): 文本背景参数, 默认无背景
             shadow (`TextShadow`, optional): 文本阴影参数, 默认无阴影
+            rich_spans (`List[RichTextSpan]`, optional): 富文本片段样式列表, 默认空
         """
         super().__init__(uuid.uuid4().hex, None, timerange, 1.0, 1.0, False, clip_settings=clip_settings)
 
         self.text = text
         self.font = font.value if font else None
         self.style = style or TextStyle()
+        self.rich_spans = rich_spans or []
         self.border = border
         self.background = background
         self.shadow = shadow
@@ -392,27 +471,32 @@ class TextSegment(VisualSegment):
         if self.shadow:
             check_flag |= 32
 
-        content_json = {
-            "styles": [
-                {
-                    "fill": {
+        base_style = {
+            "fill": {
+                "alpha": 1.0,
+                "content": {
+                    "render_type": "solid",
+                    "solid": {
                         "alpha": 1.0,
-                        "content": {
-                            "render_type": "solid",
-                            "solid": {
-                                "alpha": 1.0,
-                                "color": list(self.style.color)
-                            }
-                        }
-                    },
-                    "range": [0, len(self.text)],
-                    "size": self.style.size,
-                    "bold": self.style.bold,
-                    "italic": self.style.italic,
-                    "underline": self.style.underline,
-                    "strokes": [self.border.export_json()] if self.border else []
+                        "color": list(self.style.color)
+                    }
                 }
-            ],
+            },
+            "range": [0, len(self.text)],
+            "size": self.style.size,
+            "bold": self.style.bold,
+            "italic": self.style.italic,
+            "underline": self.style.underline,
+            "strokes": [self.border.export_json()] if self.border else []
+        }
+
+        if self.rich_spans:
+            styles = [span.apply_to_style(base_style) for span in self.rich_spans]
+        else:
+            styles = [base_style]
+
+        content_json = {
+            "styles": styles,
             "text": self.text
         }
         if self.font:

@@ -30,6 +30,7 @@
 - **不能用剪映的实时特效** -- 像智能抠图、美颜、语音识别字幕这些需要剪映 GPU 实时处理的功能，目前无法通过代码调用
 - **不能操作剪映的全部 UI 按钮** -- "一键成片""图文成片"这类剪映内置的 AI 功能暂时没法自动触发
 - **自动导出依赖老版本** -- 自动导出功能目前只支持 **剪映 5.9 及以下版本**（6.0+ 弹窗太多会干扰自动化脚本）
+- **MacOS / Windows 双平台支持** -- 已全面适配 MacOS 项目路径及 FFmpeg 录屏环境
 - **不支持手机端剪映** -- 只能配合 Windows/Mac 桌面版剪映专业版使用
 
 ## 🚀 快速开始 (Quick Start)
@@ -72,7 +73,9 @@ git clone https://github.com/luoluoluo22/jianying-editor-skill.git skills/jianyi
 ⬇️ **[点击下载 剪映专业版 5.9 (夸克网盘)](https://pan.quark.cn/s/81566e9c6e08)**
 *(下载后请按照说明禁止更新)*
 
-### 4. 试试这样跟 AI 说
+### 4. 试试这样跟 AI 说 (Use Cases)
+
+详细的自然语言使用案例请参考：[**使用指南 (usage.md)**](usage.md)
 
 **随便剪一个试试**
 > "帮我随便剪一个视频看看效果"
@@ -97,7 +100,10 @@ git clone https://github.com/luoluoluo22/jianying-editor-skill.git skills/jianyi
 > "我有一段旁白录音 旁白.mp3，帮我识别出字幕，然后从 F:\素材库 里自动挑画面配上去"
 
 **用剪映曲库的音乐**
-> "我想用剪映里那首'阳光旅途'当背景音乐"（需要先在剪映里播放一次建立缓存）
+> "我想用剪映里那首'阳光旅途'当背景音乐"（可以通过脚本从历史工程中自动挖掘音乐 ID）
+
+**多角色对话剪辑**
+> "帮我剪一段两个人的对话，A 角色用成熟男声，B 角色用甜美女声，自动配上各自的字幕"
 
 ## 📦 环境准备 (必读)
 
@@ -114,11 +120,11 @@ playwright install chromium
 ```
 
 
-### 2. 确认剪映安装位置
-Skill 默认认为您的剪映安装在 C 盘默认位置：
-`C:\Users\Administrator\AppData\Local\JianyingPro\User Data\Projects\com.lveditor.draft`
+Skill 默认会自动探测您的剪映安装位置，如果探测失败，请在使用时直接告诉 AI：
 
-**如果您的剪映安装在 D 盘或其他位置**，请在使用时直接告诉 AI：
+- **Windows**: `C:\Users\Administrator\AppData\Local\JianyingPro\User Data\Projects\com.lveditor.draft`
+- **MacOS**: `/Users/你的用户名/Movies/JianyingPro/User Data/Projects/com.lveditor.draft`
+
 > "我的剪映草稿目录在 D:\JianyingPro\..."
 
 ## 📂 文件夹说明
@@ -152,6 +158,18 @@ git pull
 
 最新版本请直接查看 [CHANGELOG.md](CHANGELOG.md) 与 [VERSION](VERSION)。
 
+### v1.5 (2026-04-19) - MacOS 全面适配与安全加固
+- **🍎 MacOS 双平台支持**:
+  - 全面优化了 MacOS 下的路径探测逻辑，支持 Apple Silicon 架构。
+  - 录屏与智能变焦功能现在可以通过 `avfoundation` 在 Mac 上流畅运行。
+- **🛡️ 安全与健壮性 (Security & Robustness)**:
+  - **工程自修复 (Auto-healing)**：自动检测并修复损坏的或旧版的剪映工程文件。
+  - **路径加固**：防止非法路径穿越，保护本地文件安全。
+- **🎙️ 智能配音旁白 (Narrated Subtitles)**:
+  - 核心接口 `add_narrated_subtitles`：一键完成“文案解析 -> 语音合成 -> 轨道对齐 -> 字幕生成”的全流程。
+- **📚 云端素材库挖掘**:
+  - 新增 `build_cloud_music_library.py`：自动挖掘您在剪映中曾经用过的所有云端音乐 ID，让 AI 也能调用剪映曲库。
+
 ### v1.4 (2026-02-09) - 全自动 AI 导演系统上线！
 - **🧠 AI 语义素材匹配 (Semantic Footage Match)**:
   - **核心里程碑**：现在支持根据“视频画面内容、旁白音频、SRT 字幕”三位一体进行语义分析。AI 会自动理解每一句台词的含义，并从素材库中精准挑选最契合的画面进行剪辑（如说到“爆汁”自动对位流油特写）。
@@ -171,6 +189,7 @@ git pull
 - **多轨管理**：支持视频、音频、字幕、贴纸、特效无限叠加，像专业剪辑师一样操作。
 - **全自动闭环**: 从 Claude 4.5 剧本创作到素材生成，再到剪映草稿合成，一键全自动。
 - **智能变焦**: 独家的 Smart Zoom 功能，能把普通的录屏自动变成“带镜头感”的演示视频。
+- **工程自修复**: 强大的 `Auto-healing` 机制，自动识别并修复由于版本冲突或异常关闭导致的损坏草稿。
 - **网页转视频 (Web-to-Video)**: 完美支持 Canvas/JS 动效实时捕捉，让 Web 的无限创意瞬间化身视频 VFX 素材。
 - **自动导出**：内置自动化脚本，支持一键导出 1080P/4K 视频，彻底解放双手。
 

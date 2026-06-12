@@ -49,8 +49,8 @@ project = JyProject.from_template("Master_Template", "Target_Customer_A")
 
 ```python
 # [TODO] 这些 API 尚在开发中
-# project.replace_material_by_name("Intro_Slot", "C:/user/video.mp4")
-# project.reconnect_all_assets("D:/local_media_root")
+# project.replace_material_by_name("Intro_Slot", "/path/to/video.mp4")
+# project.reconnect_all_assets("/path/to/local_media_root")
 ```
 
 ## Automated Exporting
@@ -65,7 +65,7 @@ python <SKILL_ROOT>/scripts/auto_exporter.py "ProjectName" "custom_output.mp4" -
 ## Constraints
 
 - **Draft Recognition**: The wrapper automatically handles `DraftFolder` structure. Do not manually manipulate `draft_content.json` unless you know exactly what you are doing.
-- **Exporting Requirements**: Auto-exporting only works on **Windows** with **Jianying v5.9 or lower**. It relies on `uiautomation` to interact with the UI.
+- **Exporting Requirements**: Auto-exporting via `uiautomation` 仅支持 **Windows** + **Jianying v5.9 or lower**。macOS 上请手动导出或使用命令行工具。
 - **UI Refresh**: After the script runs, if Jianying is open, the user may need to exit and re-enter the draft to see changes.
 
 ## Quick Edit Execution Template (Standard)

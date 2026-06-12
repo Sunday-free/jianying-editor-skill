@@ -7,7 +7,7 @@ metadata:
 
 # Text & Subtitles
 
-Use `add_text_simple()` for plain text, `add_styled_text()` for styled flower text (花字), or `import_srt()` for SRT subtitles.
+Use `add_text_simple()` for plain text, `add_styled_text()` for styled flower text (花字), `add_rich_text()` for keyword-highlighted text, or `import_srt()` for SRT subtitles.
 
 ## 1. Plain Text (普通文字)
 
@@ -59,7 +59,7 @@ project.add_styled_text(
 
 ### How It Works (Internal)
 1. A plain `TextSegment` is created (same as `add_text_simple`).
-2. On `project.save()`, the patching system injects the `effectStyle` (ID + local cache path) into the `draft_content.json`.
+2. On `project.save()`, the patching system injects the `effectStyle` (ID + local cache path) into the `draft_info.json`.
 3. The local `artistEffect` resources are stored in `assets/artistEffect/<style_id>/`.
 4. Jianying reads the effect prefab and renders the styled appearance.
 
@@ -80,10 +80,29 @@ To add more styles:
 If you add multiple text clips that overlap in time on the same logical track (e.g., all named "Subtitle"), the wrapper will **automatically** create new layers/tracks to prevent collision crashes.
 You do not need to manually calculate tracks for overlapping text.
 
+## 4. Rich Text & Keyword Highlighting (富文本/高亮)
+
+Use `add_rich_text()` to highlight specific keywords within a text clip.
+
+```python
+project.add_rich_text(
+    text="Wait for the 99% logic to complete.",
+    highlights=[
+        {"word": "99%", "color": (1, 0, 0), "bold": True, "size": 15.0}, # Red, Bold, Larger
+        {"word": "logic", "italic": True}                              # Italic
+    ],
+    start_time="2s",
+    duration="3s",
+    font_size=12.0
+)
+```
+
+**Note**: Highlighting is based on substring matching. If multiple matches exist, all will be highlighted.
+
 ## 4. Importing SRT Subtitles
 
 ```python
-project.import_srt(r"C:\path\to\subs.srt", track_name="Subtitles")
+project.import_srt(os.path.expanduser("~/assets/subs.srt"), track_name="Subtitles")
 ```
 
 ## Data Context

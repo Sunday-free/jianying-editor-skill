@@ -10,8 +10,10 @@ ASSETS_DIR = Path(__file__).parent
 # 资源文件映射表 - 集中管理所有asset文件名
 ASSET_FILES = {
     # 模板文件
-    'DRAFT_CONTENT_TEMPLATE': 'draft_content_template.json',
+    'DRAFT_INFO_TEMPLATE': 'draft_info_template.json',
     'DRAFT_META_TEMPLATE': 'draft_meta_info.json',
+    'DRAFT_SETTINGS_TEMPLATE': 'draft_settings_template',
+    'KEY_VALUE_TEMPLATE': 'key_value_template.json',
 }
 
 def get_asset_path(asset_name: str) -> Path:

@@ -9,13 +9,30 @@ import json
 import sys
 from pynput import mouse, keyboard
 
-# --- Windows DPI Awareness Fix ---
+# --- Platform-specific DPI / Display Fix ---
 if sys.platform == 'win32':
     try:
         import ctypes
-        ctypes.windll.shcore.SetProcessDpiAwareness(1) # PROCESS_SYSTEM_DPI_AWARE
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)  # PROCESS_SYSTEM_DPI_AWARE
     except Exception:
         pass
+
+# --- 跨平台字体选择 ---
+if sys.platform == 'darwin':
+    _UI_FONT = "PingFang SC"
+else:
+    _UI_FONT = "Microsoft YaHei"
+
+
+def _open_folder(folder_path):
+    """跨平台打开文件管理器"""
+    if sys.platform == 'darwin':
+        subprocess.Popen(["open", folder_path])
+    elif sys.platform == 'win32':
+        os.startfile(folder_path)
+    else:
+        subprocess.Popen(["xdg-open", folder_path])
+
 
 class ProGuiRecorder:
     def __init__(self, output_dir=None, audio_device=None):
@@ -45,23 +62,23 @@ class ProGuiRecorder:
         self.main_frame = tk.Frame(self.root, bg="#2c3e50")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.status_label = tk.Label(self.main_frame, text="准备就绪", fg="#ecf0f1", bg="#2c3e50", font=("Microsoft YaHei", 12, "bold"))
+        self.status_label = tk.Label(self.main_frame, text="准备就绪", fg="#ecf0f1", bg="#2c3e50", font=(_UI_FONT, 12, "bold"))
         self.status_label.pack(pady=15)
         
         audio_status = "已开启" if audio_device else "已禁用"
         self.info_label = tk.Label(self.main_frame, text=f"系统音频录制: {audio_status}\n保存至: 项目根目录/", 
-                                  fg="#bdc3c7", bg="#2c3e50", font=("Microsoft YaHei", 8))
+                                  fg="#bdc3c7", bg="#2c3e50", font=(_UI_FONT, 8))
         self.info_label.pack(pady=2)
         
         self.start_btn = tk.Button(self.main_frame, text="🎬 开始录制", command=self.start_countdown, 
-                                  bg="#2ecc71", fg="white", font=("Microsoft YaHei", 10, "bold"), width=25, height=2)
+                                  bg="#2ecc71", fg="white", font=(_UI_FONT, 10, "bold"), width=25, height=2)
         self.start_btn.pack(pady=5)
 
         self.zoom_cb = tk.Checkbutton(self.main_frame, text="开启智能缩放记录 (鼠标/键盘)", 
                                      variable=self.enable_zoom_record,
                                      bg="#2c3e50", fg="#bdc3c7", selectcolor="#2c3e50",
                                      activebackground="#2c3e50", activeforeground="white",
-                                     font=("Microsoft YaHei", 8))
+                                     font=(_UI_FONT, 8))
         self.zoom_cb.pack(pady=5)
 
         # --- 录制中简洁界面 (小圆点) ---
@@ -171,10 +188,6 @@ class ProGuiRecorder:
         threading.Thread(target=self.run_ffmpeg, daemon=True).start()
 
     def on_move(self, x, y):
-        # 即使只记录坐标，数据量也可能很大。增加限制: 
-        # 1. 仅在录制期间
-        # 2. 距离上次记录时间 > 0.1s (10FPS采样)
-        # 3. 距离上次坐标变化 > 阈值 (例如 5 像素)
         if not self.is_recording or not self.enable_zoom_record.get():
             return
             
@@ -184,7 +197,6 @@ class ProGuiRecorder:
             self._last_move_pos = (x, y)
         
         if (now - self._last_move_time) > 0.1: # 100ms
-            # 计算距离平方
             last_x, last_y = self._last_move_pos
             if (x - last_x)**2 + (y - last_y)**2 > 25: # >5px move
                 rel_time = now - self.start_time
@@ -198,23 +210,38 @@ class ProGuiRecorder:
                 self._last_move_pos = (x, y)
 
     def run_ffmpeg(self):
-        cmd = [
-            'ffmpeg', '-y',
-            '-f', 'gdigrab', '-framerate', '30', '-i', 'desktop'
-        ]
-        if self.audio_device:
-            cmd.extend(['-f', 'dshow', '-i', f'audio={self.audio_device}'])
-            cmd.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-crf', '20'])
+        if sys.platform == 'darwin':
+            # ---- macOS: avfoundation ----
+            # "1:none" = 屏幕录制 (设备索引 1 通常是 Capture screen 0), 不含音频
+            # "1:0" = 屏幕 + 默认音频输入
+            cmd = [
+                'ffmpeg', '-y',
+                '-f', 'avfoundation', '-framerate', '30',
+            ]
+            if self.audio_device:
+                cmd.extend(['-i', f'1:{self.audio_device}'])
+                cmd.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-crf', '20'])
+            else:
+                cmd.extend(['-i', '1:none'])
+                cmd.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20'])
         else:
-            cmd.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20'])
+            # ---- Windows: gdigrab + dshow ----
+            cmd = [
+                'ffmpeg', '-y',
+                '-f', 'gdigrab', '-framerate', '30', '-i', 'desktop'
+            ]
+            if self.audio_device:
+                cmd.extend(['-f', 'dshow', '-i', f'audio={self.audio_device}'])
+                cmd.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-crf', '20'])
+            else:
+                cmd.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20'])
+
         cmd.append(self.output_path)
         
-        # 必须设置 PYTHONIOENCODING，否则子进程在 Windows Pipe 中打印 Emoji 会报 GBK 编码错误
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         
         self.log_file = os.path.join(self.output_dir, "ffmpeg_log.txt")
-        # Use a temporary file handle for the process
         with open(self.log_file, "w", encoding="utf-8") as f:
             self.process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=f, stderr=subprocess.STDOUT, env=env)
             self.process.wait()
@@ -284,7 +311,7 @@ class ProGuiRecorder:
         dialog.geometry(f"+{x}+{y}")
 
         lbl = tk.Label(dialog, text="✅ 视频已保存！\n下一步做什么？", 
-                      fg="#ecf0f1", bg="#2c3e50", font=("Microsoft YaHei", 12, "bold"))
+                      fg="#ecf0f1", bg="#2c3e50", font=(_UI_FONT, 12, "bold"))
         lbl.pack(pady=20)
         
         btn_frame = tk.Frame(dialog, bg="#2c3e50")
@@ -296,7 +323,6 @@ class ProGuiRecorder:
             timestamp = datetime.datetime.now().strftime("%H%M%S")
             default_name = f"演示_{timestamp}"
             
-            # 简单的输入弹窗 (可以用 simpledialog，为了样式统一这里简单搞定)
             name = tk.simpledialog.askstring("创建草稿", "请输入剪映项目名称:", initialvalue=default_name, parent=dialog)
             if not name: return
             
@@ -305,24 +331,23 @@ class ProGuiRecorder:
 
         def open_folder():
             folder = self.output_dir
-            os.startfile(folder)
+            _open_folder(folder)
             dialog.destroy()
 
         tk.Button(btn_frame, text="✨ 自动生成智能草稿", command=do_create_draft,
-                 bg="#3498db", fg="white", font=("Microsoft YaHei", 10), width=20).pack(pady=5)
+                 bg="#3498db", fg="white", font=(_UI_FONT, 10), width=20).pack(pady=5)
                  
         tk.Button(btn_frame, text="📂 打开文件位置", command=open_folder,
-                 bg="#95a5a6", fg="white", font=("Microsoft YaHei", 10), width=20).pack(pady=5)
+                 bg="#95a5a6", fg="white", font=(_UI_FONT, 10), width=20).pack(pady=5)
                  
         tk.Button(btn_frame, text="❌ 关闭", command=dialog.destroy,
-                 bg="#e74c3c", fg="white", font=("Microsoft YaHei", 10), width=20).pack(pady=5)
+                 bg="#e74c3c", fg="white", font=(_UI_FONT, 10), width=20).pack(pady=5)
 
     def create_smart_draft(self, project_name):
         """调用 wrapper 创建草稿"""
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             # 假设结构: tools/recording/xxx.py -> scripts/jy_wrapper.py
-            # recording -> tools -> jianying-editor -> scripts
             wrapper_path = os.path.abspath(os.path.join(script_dir, "..", "..", "scripts", "jy_wrapper.py"))
             
             if not os.path.exists(wrapper_path):
@@ -342,8 +367,6 @@ class ProGuiRecorder:
             self.status_label.config(text="正在生成草稿...", fg="#3498db")
             self.root.update()
             
-            # 运行命令
-            # 必须设置 PYTHONIOENCODING，否则子进程在 Windows Pipe 中打印 Emoji 会报 GBK 编码错误
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             
@@ -363,13 +386,16 @@ class ProGuiRecorder:
         self.root.mainloop()
 
 if __name__ == "__main__":
-    # 更新为您电脑上的真实设备名称
-    # 刚才通过 list_devices 探测到的立体声混音 ID
-    AUDIO_ID = "@device_cm_{33D9A762-90C8-11D0-BD43-00A0C911CE86}\\wave_{E2766CC5-17BF-4974-AA81-E3108DEF5092}"
+    if sys.platform == 'darwin':
+        # macOS: 默认不启用音频录制 (需要用户配置 BlackHole / Soundflower 等虚拟音频设备)
+        # 若需要录制系统音频，请安装 BlackHole 并设置:
+        #   AUDIO_ID = "0"  (或对应的 avfoundation 音频设备索引)
+        AUDIO_ID = None
+    else:
+        # Windows: 更新为您电脑上的真实设备名称
+        AUDIO_ID = "@device_cm_{33D9A762-90C8-11D0-BD43-00A0C911CE86}\\wave_{E2766CC5-17BF-4974-AA81-E3108DEF5092}"
     
     # 可以接受路径作为保存目录
     out_dir = sys.argv[1] if len(sys.argv) > 1 else None
     recorder = ProGuiRecorder(out_dir, audio_device=AUDIO_ID)
     recorder.run()
-
-

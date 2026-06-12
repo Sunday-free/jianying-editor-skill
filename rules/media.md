@@ -57,10 +57,10 @@ def add_media_safe(self, file_path, start_time=None, duration=None, track_name=N
 
 ```python
 # Import main video
-video_seg = project.add_media_safe(r"C:\assets\video.mp4", start_time="0s")
+video_seg = project.add_media_safe(os.path.expanduser("~/assets/video.mp4"), start_time="0s")
 
 # Import BGM (Audio)
-project.add_audio_safe(r"C:\assets\bgm.mp3", start_time="0s", track_name="BGM")
+project.add_audio_safe(os.path.expanduser("~/assets/bgm.mp3"), start_time="0s", track_name="BGM")
 
 # Import Cloud Asset (NEW)
 # Automatically searches, downloads, and imports from the cloud database
@@ -68,5 +68,5 @@ project.add_cloud_media("海绵宝宝", start_time="5s", duration="2s")
 project.add_cloud_media("7322042077603302666", start_time="10s")
 
 # Import PIP (Picture in Picture)
-pip_seg = project.add_media_safe(r"C:\assets\facecam.mp4", start_time="5s", track_name="PipLayer")
+pip_seg = project.add_media_safe(os.path.expanduser("~/assets/facecam.mp4"), start_time="5s", track_name="PipLayer")
 ```

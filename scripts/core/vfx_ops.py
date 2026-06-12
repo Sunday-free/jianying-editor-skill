@@ -16,7 +16,7 @@ class VfxOpsMixin:
         eff_type = self._resolve_enum(draft.VideoSceneEffectType, effect_name)
         if not eff_type: return None
         
-        seg = draft.EffectSegment(draft.EffectMaterial(eff_type), draft.Timerange(safe_tim(start_time), safe_tim(duration)))
+        seg = draft.EffectSegment(eff_type, draft.Timerange(safe_tim(start_time), safe_tim(duration)))
         self.script.add_segment(seg, track_name)
         return seg
 
@@ -40,9 +40,8 @@ class VfxOpsMixin:
         trans_type = self._resolve_enum(draft.TransitionType, transition_name)
         if not trans_type: return None
         
-        trans = draft.Transition(trans_type, safe_tim(duration))
-        video_segment.add_transition(trans)
-        return trans
+        video_segment.add_transition(trans_type, duration=duration)
+        return video_segment.transition
 
     def add_web_asset_safe(self, html_path: str, start_time: Union[str, int] = None, duration: Union[str, int] = "5s", 
                            track_name: str = "WebVfxTrack", output_dir: Optional[str] = None):

@@ -37,7 +37,7 @@ class TextOpsMixin:
         anim_loop_duration = kwargs.pop("anim_loop_duration", None)
 
         # 仅透传 TextSegment 支持的字段
-        allowed_keys = {"font", "style", "clip_settings", "border", "background", "shadow"}
+        allowed_keys = {"font", "style", "clip_settings", "border", "background", "shadow", "rich_spans"}
         text_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
         # 统一默认字幕样式：字号 5 + 黑色描边
         if "style" not in text_kwargs:
@@ -65,6 +65,50 @@ class TextOpsMixin:
 
         self.script.add_segment(seg, track_name)
         return seg
+
+    def add_rich_text(
+        self,
+        text: str,
+        highlights: list,
+        start_time: Union[str, int] = None,
+        duration: Union[str, int] = "3s",
+        track_name: str = "Subtitles",
+        **kwargs,
+    ):
+        """
+        添加富文本字幕，支持按关键词高亮。
+        highlights 格式: [{"word": "99%", "color": (1,0,0), "bold": True}, ...]
+        """
+        spans = []
+        for h in highlights:
+            word = h.get("word")
+            if not word:
+                continue
+
+            start = 0
+            while True:
+                idx = text.find(word, start)
+                if idx == -1:
+                    break
+
+                span = draft.RichTextSpan(
+                    idx,
+                    idx + len(word),
+                    color=h.get("color"),
+                    size=h.get("size"),
+                    bold=h.get("bold"),
+                    italic=h.get("italic"),
+                    underline=h.get("underline"),
+                )
+                spans.append(span)
+                start = idx + len(word)
+
+        kwargs["rich_spans"] = spans
+        return self.add_text_simple(text, start_time, duration, track_name, **kwargs)
+
+    def set_subtitle_keywords(self, keywords_config: dict):
+        """设置字幕关键词高亮配置，注入 draft_info.json 的 config 节点"""
+        self.script.subtitle_keywords_config = keywords_config
 
     def add_narrated_subtitles(
         self,

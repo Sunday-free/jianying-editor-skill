@@ -4,11 +4,27 @@ import json
 import csv
 import shutil
 import subprocess
+import sys
 
-# 1. 路径定义
-LOCAL_APP_DATA = os.getenv('LOCALAPPDATA')
-JY_USER_DATA = os.path.join(LOCAL_APP_DATA, r"JianyingPro\User Data")
-JY_CACHE_MUSIC = os.path.join(JY_USER_DATA, r"Cache\music")
+# 1. 路径定义 (跨平台)
+if sys.platform == "darwin":
+    # ---- macOS ----
+    _home = os.path.expanduser("~")
+    # 剪映 macOS 数据目录 (优先检测沙盒容器路径，其次检测非沙盒路径)
+    _container_base = os.path.join(
+        _home, "Library", "Containers", "com.lemon.lvpro", "Data",
+        "Library", "Application Support", "JianyingPro", "User Data",
+    )
+    _appsupp_base = os.path.join(
+        _home, "Library", "Application Support", "JianyingPro", "User Data",
+    )
+    JY_USER_DATA = _container_base if os.path.exists(_container_base) else _appsupp_base
+    JY_CACHE_MUSIC = os.path.join(JY_USER_DATA, "Cache", "music")
+else:
+    # ---- Windows ----
+    LOCAL_APP_DATA = os.getenv('LOCALAPPDATA', '')
+    JY_USER_DATA = os.path.join(LOCAL_APP_DATA, "JianyingPro", "User Data")
+    JY_CACHE_MUSIC = os.path.join(JY_USER_DATA, "Cache", "music")
 
 # Skill 根目录 (scripts 的上一级)
 SKILL_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -50,7 +66,7 @@ def sync_music_cache_robust():
 
     # 2. 尝试连接数据库获取元数据 (Best Effort)
     db_map = {} # mid -> {name, author}
-    db_root = os.path.join(JY_USER_DATA, r"Cache\ressdk_db")
+    db_root = os.path.join(JY_USER_DATA, "Cache", "ressdk_db")
     if os.path.exists(db_root):
         for root, dirs, files in os.walk(db_root):
             if "rp.db" in files:

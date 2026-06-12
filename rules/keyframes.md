@@ -14,7 +14,7 @@ You can add keyframe animations to video or image segments (e.g., for Picture-in
 To use keyframes, you need to import `KeyframeProperty` from the underlying library:
 
 ```python
-from pyJianYingDraft import KeyframeProperty as KP
+from pyJianYingDraft import KeyframeProperty as KP, Keyframe
 ```
 
 ## How to Add Keyframes
@@ -27,7 +27,7 @@ from pyJianYingDraft import KeyframeProperty as KP
 # Note: start_time and duration must be known to calculate absolute keyframe times
 start_time = 1000000  # 1s (in microseconds)
 segment = project.add_media_safe(
-    r"C:\assets\image.png", 
+    os.path.expanduser("~/assets/image.png"), 
     start_time=start_time, 
     duration="4s"
 )
@@ -50,6 +50,11 @@ if segment:
     # Coordinates: 0.0 is center? (Verify with trial, usually normalized)
     segment.add_keyframe(KP.position_x, t_start, -0.5) # Left
     segment.add_keyframe(KP.position_x, t_end, 0.5)    # Right
+    
+    # Example: Smooth Zoom with Bezier (Easing)
+    # Using presets: Keyframe.EASE_IN, Keyframe.EASE_OUT, Keyframe.EASE_IN_OUT
+    segment.add_keyframe(KP.uniform_scale, t_start, 1.0, **Keyframe.EASE_IN_OUT)
+    segment.add_keyframe(KP.uniform_scale, t_end, 2.0, **Keyframe.EASE_IN_OUT)
 ```
 
 ## Supported Properties (`KeyframeProperty`)

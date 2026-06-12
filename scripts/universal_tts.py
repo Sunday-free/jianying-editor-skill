@@ -10,19 +10,38 @@ from utils.config import CONFIG
 
 
 def get_jy_local_config() -> Tuple[str, str]:
-    local_app_data = os.getenv("LOCALAPPDATA")
-    if not local_app_data:
-        return "1053764930506284", "2314914062247833"
+    import sys as _sys
 
-    jy_user_data = os.path.join(local_app_data, r"JianyingPro\User Data")
-    cfg = {"device_id": "1053764930506284", "iid": "2314914062247833"}
+    defaults = ("1053764930506284", "2314914062247833")
 
-    ttnet_path = os.path.join(jy_user_data, r"TTNet\tt_net_config.config")
+    if _sys.platform == "darwin":
+        # ---- macOS ----
+        home = os.path.expanduser("~")
+        candidates = [
+            os.path.join(
+                home, "Library", "Containers", "com.lemon.lvpro", "Data",
+                "Library", "Application Support", "JianyingPro", "User Data",
+            ),
+            os.path.join(home, "Library", "Application Support", "JianyingPro", "User Data"),
+        ]
+        jy_user_data = next((p for p in candidates if os.path.exists(p)), None)
+        if not jy_user_data:
+            return defaults
+    else:
+        # ---- Windows ----
+        local_app_data = os.getenv("LOCALAPPDATA")
+        if not local_app_data:
+            return defaults
+        jy_user_data = os.path.join(local_app_data, "JianyingPro", "User Data")
+
+    cfg = {"device_id": defaults[0], "iid": defaults[1]}
+
+    ttnet_path = os.path.join(jy_user_data, "TTNet", "tt_net_config.config")
     if os.path.exists(ttnet_path):
         try:
             with open(ttnet_path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
-            m = re.search(r"device_id&#\*(\d+)", content)
+            m = re.search(r"device_id\&#\*(\d+)", content)
             if m:
                 cfg["device_id"] = m.group(1)
         except Exception:

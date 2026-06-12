@@ -85,10 +85,12 @@ class DraftFolder:
         # 创建草稿文件夹
         os.makedirs(draft_path)
         shutil.copy(assets.get_asset_path("DRAFT_META_TEMPLATE"), os.path.join(draft_path, "draft_meta_info.json"))
+        shutil.copy(assets.get_asset_path("DRAFT_SETTINGS_TEMPLATE"), os.path.join(draft_path, "draft_settings"))
+        shutil.copy(assets.get_asset_path("KEY_VALUE_TEMPLATE"), os.path.join(draft_path, "key_value.json"))
 
         # 创建草稿文件
         script_file = ScriptFile(width, height, fps, maintrack_adsorb)
-        script_file.save_path = os.path.join(draft_path, "draft_content.json")
+        script_file.save_path = os.path.join(draft_path, "draft_info.json")
 
         return script_file
 
@@ -124,7 +126,12 @@ class DraftFolder:
         if not os.path.exists(draft_path):
             raise FileNotFoundError(f"草稿文件夹 {draft_name} 不存在")
 
-        return ScriptFile.load_template(os.path.join(draft_path, "draft_content.json"))
+        info_path = os.path.join(draft_path, "draft_info.json")
+        if not os.path.exists(info_path):
+            # 兼容旧版本
+            info_path = os.path.join(draft_path, "draft_content.json")
+            
+        return ScriptFile.load_template(info_path)
 
     def duplicate_as_template(self, template_name: str, new_draft_name: str, allow_replace: bool = False) -> ScriptFile:
         """复制一份给定的草稿, 并在复制出的新草稿上进行编辑

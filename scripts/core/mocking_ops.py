@@ -43,7 +43,9 @@ class MockingOpsMixin:
     JyProject 的协议补丁与伪物料 Mixin。
     """
     def _force_activate_adjustments(self):
-        content_path = os.path.join(self.root, self.name, "draft_content.json")
+        content_path = os.path.join(self.root, self.name, "draft_info.json")
+        if not os.path.exists(content_path):
+            content_path = os.path.join(self.root, self.name, "draft_content.json")
         if not os.path.exists(content_path): return
 
         try:
@@ -87,7 +89,9 @@ class MockingOpsMixin:
 
     def _patch_cloud_material_ids(self):
         if not self._cloud_audio_patches and not self._cloud_text_patches: return
-        content_path = os.path.join(self.root, self.name, "draft_content.json")
+        content_path = os.path.join(self.root, self.name, "draft_info.json")
+        if not os.path.exists(content_path):
+            content_path = os.path.join(self.root, self.name, "draft_content.json")
         if not os.path.exists(content_path): return
 
         try:

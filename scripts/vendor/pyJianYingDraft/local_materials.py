@@ -160,6 +160,19 @@ class VideoMaterial:
             "media_path": "",
             "path": self.path,
             "type": self.material_type,
+            "video_algorithm": {
+                "algorithms": [],
+                "complement_frame_config": None,
+                "deflicker": None,
+                "gameplay_configs": [],
+                "motion_blur_config": None,
+                "noise_reduction": None,
+                "path": "",
+                "quality_enhance": None,
+                "time_range": None
+            },
+            "source_platform": 0,
+            "team_id": "",
             "width": self.width
         }
         return video_material_json

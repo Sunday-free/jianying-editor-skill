@@ -10,6 +10,13 @@ Use this SOP for simple editing requests to minimize noisy exploration.
 
 ## Step 1: Minimal Environment Check (2 commands max)
 
+### macOS
+```bash
+python3 --version
+ls ~/Movies/JianyingPro\ Drafts/ 2>/dev/null || echo "Draft path not found"
+```
+
+### Windows
 ```powershell
 python --version
 Test-Path "C:\Users\Administrator\AppData\Local\JianyingPro\User Data\Projects\com.lveditor.draft"
@@ -19,6 +26,12 @@ If draft path differs, set `JY_PROJECTS_ROOT` and continue.
 
 ## Step 2: Asset Check (1 command)
 
+### macOS
+```bash
+ls .agent/skills/jianying-editor/assets/
+```
+
+### Windows
 ```powershell
 Get-ChildItem .agent\skills\jianying-editor\assets -File
 ```
@@ -37,7 +50,7 @@ Do not recursively scan the whole workspace unless asset lookup fails.
 
 ## Step 4: Single Execution
 
-```powershell
+```bash
 python simple_edit.py
 ```
 
@@ -61,6 +74,6 @@ Verify all:
 
 ## Anti-Patterns (Avoid)
 
-- Repeated `Get-ChildItem -Recurse` over full workspace
+- Repeated recursive directory scanning over full workspace
 - Temporary introspection files (`*_dir.txt`, `output.txt`) unless debugging is explicitly requested
 - Multiple style/effect searches before first successful draft generation

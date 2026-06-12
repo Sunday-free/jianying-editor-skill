@@ -175,6 +175,8 @@ class ScriptFile:
     """导入的素材信息"""
     imported_tracks: List[ImportedTrack]
     """导入的轨道信息"""
+    subtitle_keywords_config: Optional[Dict[str, Any]]
+    """字幕高亮关键词配置"""
 
     def __init__(self, width: int, height: int, fps: int, maintrack_adsorb: bool):
         """**创建剪映草稿推荐使用`DraftFolder.create_draft()`而非此方法**
@@ -198,9 +200,27 @@ class ScriptFile:
 
         self.imported_materials = {}
         self.imported_tracks = []
+        self.subtitle_keywords_config = None
 
-        with open(assets.get_asset_path('DRAFT_CONTENT_TEMPLATE'), "r", encoding="utf-8") as f:
+        with open(assets.get_asset_path('DRAFT_INFO_TEMPLATE'), "r", encoding="utf-8") as f:
             self.content = json.load(f)
+            
+        # 动态检测系统平台
+        import platform as py_platform
+        os_name = py_platform.system().lower()
+        if os_name == "darwin":
+            os_name = "mac"
+        elif os_name != "windows":
+            os_name = "windows"  # 默认 windows
+            
+        self.content["last_modified_platform"]["os"] = os_name
+        self.content["platform"]["os"] = os_name
+        
+        # 设置时间戳
+        import time as py_time
+        now_ms = int(py_time.time() * 1000)
+        self.content["create_time"] = now_ms
+        self.content["update_time"] = now_ms
 
     @staticmethod
     def load_template(json_path: str) -> "ScriptFile":
@@ -787,6 +807,9 @@ class ScriptFile:
         self.content["config"]["maintrack_adsorb"] = self.maintrack_adsorb
         self.content["canvas_config"] = {"width": self.width, "height": self.height, "ratio": "original"}
         self.content["materials"] = self.materials.export_json()
+        
+        if self.subtitle_keywords_config:
+            self.content["config"]["subtitle_keywords_config"] = self.subtitle_keywords_config
 
         # 合并导入的素材
         for material_type, material_list in self.imported_materials.items():

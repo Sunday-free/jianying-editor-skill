@@ -52,7 +52,10 @@ class JyProjectBase:
         has_draft = self.df.has_draft(self.name)
         if has_draft:
             draft_path = self._safe_join_root(self.name)
-            content_path = os.path.join(draft_path, "draft_content.json")
+            content_path = os.path.join(draft_path, "draft_info.json")
+            if not os.path.exists(content_path):
+                content_path = os.path.join(draft_path, "draft_content.json")
+                
             meta_path = os.path.join(draft_path, "draft_meta_info.json")
             if not os.path.exists(content_path) or not os.path.exists(meta_path):
                 if overwrite:

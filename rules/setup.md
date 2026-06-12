@@ -57,3 +57,15 @@ from jy_wrapper import JyProject
 - Prefer setting `JY_SKILL_ROOT` in mixed editor environments.
 - Put business scripts in the user workspace, not inside the skill repo.
 - Always call `project.save()` at the end.
+
+## macOS: FFmpeg PATH
+
+macOS 上通过 Homebrew 安装的 FFmpeg 位于 `/opt/homebrew/bin/`。如果脚本执行时提示找不到 `ffmpeg` 或 `ffprobe`，在 bootstrap 代码中追加：
+
+```python
+import sys
+if sys.platform == "darwin":
+    homebrew_bin = "/opt/homebrew/bin"
+    if homebrew_bin not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = homebrew_bin + ":" + os.environ.get("PATH", "")
+```

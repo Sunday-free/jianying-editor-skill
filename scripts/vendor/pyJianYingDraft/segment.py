@@ -250,13 +250,19 @@ class VisualSegment(MediaSegment):
         self.uniform_scale = True
         self.animations_instance = None
 
-    def add_keyframe(self, _property: KeyframeProperty, time_offset: Union[int, str], value: float) -> "VisualSegment":
+    def add_keyframe(self, _property: KeyframeProperty, time_offset: Union[int, str], value: float, *,
+                     curve_type: str = "Line",
+                     left_control: tuple = (0.0, 0.0),
+                     right_control: tuple = (0.0, 0.0)) -> "VisualSegment":
         """为给定属性创建一个关键帧, 并自动加入到关键帧列表中
 
         Args:
             _property (`KeyframeProperty`): 要控制的属性
             time_offset (`int` or `str`): 关键帧的时间偏移量, 单位为微秒. 若传入字符串则会调用`tim()`函数进行解析.
             value (`float`): 属性在`time_offset`处的值
+            curve_type (`str`, optional): 曲线类型, 'Line' 或 'Bezier'. 默认线性.
+            left_control (`tuple`, optional): 贝塞尔左控制点 (x, y).
+            right_control (`tuple`, optional): 贝塞尔右控制点 (x, y).
 
         Raises:
             `ValueError`: 试图同时设置`uniform_scale`以及`scale_x`或`scale_y`其中一者
@@ -275,12 +281,13 @@ class VisualSegment(MediaSegment):
         if _property in color_props:
             self.enable_color_correct_adjust = True
 
+        kf_kwargs = {"curve_type": curve_type, "left_control": left_control, "right_control": right_control}
         for kf_list in self.common_keyframes:
             if kf_list.keyframe_property == _property:
-                kf_list.add_keyframe(time_offset, value)
+                kf_list.add_keyframe(time_offset, value, **kf_kwargs)
                 return self
         kf_list = KeyframeList(_property)
-        kf_list.add_keyframe(time_offset, value)
+        kf_list.add_keyframe(time_offset, value, **kf_kwargs)
         self.common_keyframes.append(kf_list)
         return self
 

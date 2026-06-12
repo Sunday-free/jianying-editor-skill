@@ -2,13 +2,13 @@ import warnings
 import sys
 
 from .local_materials import CropSettings, VideoMaterial, AudioMaterial
-from .keyframe import KeyframeProperty
+from .keyframe import KeyframeProperty, Keyframe
 
 from .time_util import Timerange
 from .audio_segment import AudioSegment
-from .video_segment import VideoSegment, StickerSegment, ClipSettings
+from .video_segment import VideoSegment, StickerSegment, ClipSettings, Transition, Filter, VideoEffect, Mask
 from .effect_segment import EffectSegment, FilterSegment
-from .text_segment import TextSegment, TextStyle, TextBorder, TextBackground, TextShadow
+from .text_segment import TextSegment, TextStyle, TextBorder, TextBackground, TextShadow, RichTextSpan
 
 from .metadata import FontType
 from .metadata import MaskType
@@ -20,7 +20,7 @@ from .metadata import VideoSceneEffectType, VideoCharacterEffectType
 
 from .track import TrackType
 from .template_mode import ShrinkMode, ExtendMode
-from .script_file import ScriptFile
+from .script_file import ScriptFile, ScriptMaterial
 from .draft_folder import DraftFolder
 
 # 仅在Windows系统下导入jianying_controller
@@ -225,10 +225,17 @@ __all__ = [
     "ShrinkMode",
     "ExtendMode",
     "ScriptFile",
+    "ScriptMaterial",
     "DraftFolder",
     "SEC",
     "tim",
     "trange",
+    "RichTextSpan",
+    "Keyframe",
+    "Transition",
+    "Filter",
+    "VideoEffect",
+    "Mask",
 
     # 向后兼容的snake_case类
     "Script_file",
