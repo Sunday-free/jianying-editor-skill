@@ -3,7 +3,18 @@ import functools
 import os
 import re
 import subprocess
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
+
+DRAFT_CONTENT_FILENAMES = ("draft_info.json", "draft_content.json")
+
+
+def find_draft_content_path(draft_path: str) -> Optional[str]:
+    """Return the current draft content JSON path, supporting v5.9+ and legacy drafts."""
+    for filename in DRAFT_CONTENT_FILENAMES:
+        content_path = os.path.join(draft_path, filename)
+        if os.path.exists(content_path):
+            return content_path
+    return None
 
 
 # ----------------- 路径自动探测 -----------------
@@ -19,15 +30,30 @@ def get_default_drafts_root() -> str:
         candidates.extend(
             [
                 os.path.join(home, "Movies", "JianyingPro Drafts"),
-                os.path.join(home, "Movies", "JianyingPro", "User Data", "Projects", "com.lveditor.draft"),
                 os.path.join(
-                    home, "Library", "Containers", "com.lemon.lvpro", "Data",
-                    "Library", "Application Support", "JianyingPro",
-                    "User Data", "Projects", "com.lveditor.draft",
+                    home, "Movies", "JianyingPro", "User Data", "Projects", "com.lveditor.draft"
                 ),
                 os.path.join(
-                    home, "Library", "Application Support", "JianyingPro",
-                    "User Data", "Projects", "com.lveditor.draft",
+                    home,
+                    "Library",
+                    "Containers",
+                    "com.lemon.lvpro",
+                    "Data",
+                    "Library",
+                    "Application Support",
+                    "JianyingPro",
+                    "User Data",
+                    "Projects",
+                    "com.lveditor.draft",
+                ),
+                os.path.join(
+                    home,
+                    "Library",
+                    "Application Support",
+                    "JianyingPro",
+                    "User Data",
+                    "Projects",
+                    "com.lveditor.draft",
                 ),
             ]
         )
@@ -40,22 +66,39 @@ def get_default_drafts_root() -> str:
         if local_app_data:
             candidates.extend(
                 [
-                    os.path.join(local_app_data, "JianyingPro", "User Data", "Projects", "com.lveditor.draft"),
-                    os.path.join(local_app_data, "CapCut", "User Data", "Projects", "com.lveditor.draft"),
+                    os.path.join(
+                        local_app_data, "JianyingPro", "User Data", "Projects", "com.lveditor.draft"
+                    ),
+                    os.path.join(
+                        local_app_data, "CapCut", "User Data", "Projects", "com.lveditor.draft"
+                    ),
                 ]
             )
 
         if user_profile:
             candidates.append(
                 os.path.join(
-                    user_profile, "AppData", "Local", "JianyingPro",
-                    "User Data", "Projects", "com.lveditor.draft",
+                    user_profile,
+                    "AppData",
+                    "Local",
+                    "JianyingPro",
+                    "User Data",
+                    "Projects",
+                    "com.lveditor.draft",
                 )
             )
 
         fallback = os.path.join(
-            "C:", os.sep, "Users", "Administrator", "AppData", "Local",
-            "JianyingPro", "User Data", "Projects", "com.lveditor.draft",
+            "C:",
+            os.sep,
+            "Users",
+            "Administrator",
+            "AppData",
+            "Local",
+            "JianyingPro",
+            "User Data",
+            "Projects",
+            "com.lveditor.draft",
         )
 
     for path in candidates:
@@ -74,7 +117,7 @@ def get_all_drafts(root_path: str = None) -> List[Dict]:
     for item in os.listdir(root):
         path = os.path.join(root, item)
         if os.path.isdir(path):
-            if os.path.exists(os.path.join(path, "draft_content.json")) or os.path.exists(
+            if find_draft_content_path(path) or os.path.exists(
                 os.path.join(path, "draft_meta_info.json")
             ):
                 drafts.append({"name": item, "mtime": os.path.getmtime(path), "path": path})

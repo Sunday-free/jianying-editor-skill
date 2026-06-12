@@ -3,7 +3,12 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 
-from utils.formatters import get_all_drafts, get_default_drafts_root
+from utils.formatters import (
+    DRAFT_CONTENT_FILENAMES,
+    find_draft_content_path,
+    get_all_drafts,
+    get_default_drafts_root,
+)
 
 
 def _ok(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -50,15 +55,16 @@ def cmd_show(root: str, name: Optional[str], path: Optional[str], kind: str) -> 
         draft_path = found["path"]
         draft_name = found["name"]
 
-    content_path = os.path.join(draft_path, "draft_content.json")
+    content_path = find_draft_content_path(draft_path)
     meta_path = os.path.join(draft_path, "draft_meta_info.json")
 
     data: Dict[str, Any] = {"name": draft_name, "path": draft_path}
 
     try:
         if kind in {"content", "both"}:
-            if not os.path.exists(content_path):
-                return _err("not_found", f"Missing draft_content.json: {content_path}")
+            if not content_path:
+                expected = " or ".join(DRAFT_CONTENT_FILENAMES)
+                return _err("not_found", f"Missing {expected}: {draft_path}")
             data["content"] = _read_json(content_path)
 
         if kind in {"meta", "both"}:
@@ -164,7 +170,9 @@ def main() -> int:
     p_summary = sub.add_parser("summary", help="Show compact draft summary")
     p_summary.add_argument("--name", help="Draft name")
     p_summary.add_argument("--path", help="Draft absolute path")
-    p_summary.add_argument("--json", action="store_true", help="Print machine-readable JSON response")
+    p_summary.add_argument(
+        "--json", action="store_true", help="Print machine-readable JSON response"
+    )
 
     args = parser.parse_args()
     root = os.path.abspath(args.root)

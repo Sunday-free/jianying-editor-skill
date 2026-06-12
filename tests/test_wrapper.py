@@ -15,12 +15,12 @@ if scripts_path not in sys.path:
 
 from cloud_manager import CloudManager
 from core.mocking_ops import MockAudioMaterial
+from draft_inspector import cmd_summary
 from jy_wrapper import JyProject, draft
 from utils.formatters import safe_tim
 
 
 class TestJyWrapper(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         # 使用临时目录作为测试环境
@@ -165,6 +165,22 @@ class TestJyWrapper(unittest.TestCase):
         self.assertIn("AudioTrack_1", p.script.tracks)
         self.assertEqual(len(p.script.tracks["AudioTrack"].segments), 1)
         self.assertEqual(len(p.script.tracks["AudioTrack_1"].segments), 1)
+
+    def test_12_draft_inspector_reads_draft_info(self):
+        """测试 draft_inspector 兼容 v5.9+ 的 draft_info.json"""
+        p = JyProject("TestInspectorInfo", drafts_root=self.test_output, overwrite=True)
+        p.add_text_simple("Hello", "0s", "1s")
+        p.save()
+
+        res = cmd_summary(
+            root=self.test_output,
+            name=None,
+            path=os.path.join(self.test_output, "TestInspectorInfo"),
+        )
+
+        self.assertTrue(res["ok"], res.get("reason"))
+        self.assertEqual(res["data"]["name"], "TestInspectorInfo")
+        self.assertGreaterEqual(res["data"]["track_count"], 1)
 
     @classmethod
     def tearDownClass(cls):

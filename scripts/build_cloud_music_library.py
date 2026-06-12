@@ -2,16 +2,17 @@ import argparse
 import csv
 import json
 import os
+import sys
 from typing import Dict
 
 from utils.cli_protocol import emit_result, make_result
 from utils.config import CONFIG
 from utils.errors import InfraError
+from utils.formatters import find_draft_content_path
 from utils.logging_utils import setup_logger
 
 logger = setup_logger("build_cloud_music_library")
 
-import sys
 
 def _get_default_projects_root() -> str:
     """跨平台探测剪映草稿目录"""
@@ -19,24 +20,43 @@ def _get_default_projects_root() -> str:
         home = os.path.expanduser("~")
         candidates = [
             os.path.join(home, "Movies", "JianyingPro Drafts"),
-            os.path.join(home, "Movies", "JianyingPro", "User Data", "Projects", "com.lveditor.draft"),
             os.path.join(
-                home, "Library", "Containers", "com.lemon.lvpro", "Data",
-                "Library", "Application Support", "JianyingPro",
-                "User Data", "Projects", "com.lveditor.draft",
+                home, "Movies", "JianyingPro", "User Data", "Projects", "com.lveditor.draft"
+            ),
+            os.path.join(
+                home,
+                "Library",
+                "Containers",
+                "com.lemon.lvpro",
+                "Data",
+                "Library",
+                "Application Support",
+                "JianyingPro",
+                "User Data",
+                "Projects",
+                "com.lveditor.draft",
             ),
         ]
     else:
         local_app_data = os.getenv("LOCALAPPDATA", "")
-        candidates = [
-            os.path.join(local_app_data, "JianyingPro", "User Data", "Projects", "com.lveditor.draft"),
-            os.path.join(local_app_data, "CapCut", "User Data", "Projects", "com.lveditor.draft"),
-        ] if local_app_data else []
+        candidates = (
+            [
+                os.path.join(
+                    local_app_data, "JianyingPro", "User Data", "Projects", "com.lveditor.draft"
+                ),
+                os.path.join(
+                    local_app_data, "CapCut", "User Data", "Projects", "com.lveditor.draft"
+                ),
+            ]
+            if local_app_data
+            else []
+        )
 
     for p in candidates:
         if os.path.exists(p):
             return p
     return candidates[0] if candidates else ""
+
 
 PROJECTS_ROOT = CONFIG.projects_root_override or _get_default_projects_root()
 
@@ -116,8 +136,8 @@ def build_libraries(
         project_path = os.path.join(projects_root, project_name)
         if not os.path.isdir(project_path):
             continue
-        content_path = os.path.join(project_path, "draft_content.json")
-        if not os.path.exists(content_path):
+        content_path = find_draft_content_path(project_path)
+        if not content_path:
             continue
 
         try:
