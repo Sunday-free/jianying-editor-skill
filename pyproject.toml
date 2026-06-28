@@ -1,3 +1,32 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jianying-editor"
+version = "0.1.0"
+description = "JianYing AI 自动化剪辑高级封装 API"
+requires-python = ">=3.10"
+dependencies = [
+    "uiautomation>=2.0",
+    "pymediainfo>=7.0",
+    "requests>=2.32",
+    "websockets>=16.0",
+    "edge-tts>=7.2",
+    "playwright>=1.52",
+    "pynput>=1.7",
+    "psutil>=7.0",
+    "opencv-python>=4.11",
+    "numpy>=2.2",
+    "imageio>=2.37",
+]
+
+[tool.setuptools.package-dir]
+"" = "scripts"
+
+[tool.setuptools.packages.find]
+where = ["scripts"]
+
 [tool.black]
 line-length = 100
 target-version = ["py312"]

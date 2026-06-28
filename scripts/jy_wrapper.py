@@ -20,11 +20,12 @@ from utils.formatters import (
 )
 
 # 导入基类与 Mixins
-from core.project_base import JyProjectBase
-from core.media_ops import MediaOpsMixin
-from core.text_ops import TextOpsMixin
-from core.vfx_ops import VfxOpsMixin
-from core.mocking_ops import MockingOpsMixin
+from jy_core.project_base import JyProjectBase
+from jy_core.media_ops import MediaOpsMixin
+from jy_core.text_ops import TextOpsMixin
+from jy_core.vfx_ops import VfxOpsMixin
+from jy_core.mocking_ops import MockingOpsMixin
+from jy_core.sticker_ops import StickerOpsMixin
 
 try:
     import pyJianYingDraft as draft
@@ -32,7 +33,7 @@ try:
 except ImportError:
     draft = None
 
-class JyProject(JyProjectBase, MediaOpsMixin, TextOpsMixin, VfxOpsMixin, MockingOpsMixin):
+class JyProject(JyProjectBase, MediaOpsMixin, TextOpsMixin, VfxOpsMixin, MockingOpsMixin, StickerOpsMixin):
     """
     高层封装工程类。通过多重继承 Mixins 实现功能解耦。
     """

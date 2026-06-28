@@ -23,6 +23,9 @@ cloud_cache/
 scripts/cloud_cache/
 *.webm
 
+.codebuddy/
+.venv/
+
 # Assets (large synced files - keep tracked manually)
 # assets/jy_sync/
 scratch/

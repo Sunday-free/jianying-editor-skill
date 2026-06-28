@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import shutil
 import pyJianYingDraft as draft
 
 class MockVideoMaterial(draft.VideoMaterial):
@@ -42,6 +43,96 @@ class MockingOpsMixin:
     """
     JyProject 的协议补丁与伪物料 Mixin。
     """
+    # ---------- 封面 ----------
+    def set_cover(
+        self,
+        image_path: str,
+        *,
+        copy_to_draft: bool = True,
+    ) -> bool:
+        """
+        设置草稿的静态封面图。
+
+        封面会在剪映的草稿列表中显示。支持任意图片格式（PNG/JPG/JPEG/WEBP）。
+
+        Args:
+            image_path: 封面图片的本地路径
+            copy_to_draft: 是否将图片复制到草稿目录下（推荐 True，避免路径失效）
+
+        Returns:
+            成功返回 True，失败返回 False
+        """
+        if not os.path.exists(image_path):
+            print(f"⚠️ Cover image not found: {image_path}")
+            return False
+
+        cover_filename = None
+
+        if copy_to_draft:
+            draft_dir = os.path.join(self.root, self.name)
+            os.makedirs(draft_dir, exist_ok=True)
+            ext = os.path.splitext(image_path)[1] or ".png"
+            cover_filename = f"cover{ext}"
+            cover_dest = os.path.join(draft_dir, cover_filename)
+            try:
+                shutil.copy2(image_path, cover_dest)
+                cover_path = cover_dest
+            except Exception as e:
+                print(f"⚠️ Failed to copy cover image: {e}")
+                cover_path = image_path
+                cover_filename = os.path.basename(image_path)
+        else:
+            cover_path = image_path
+            cover_filename = os.path.basename(image_path)
+
+        # 写入 draft_content.json 的 static_cover_image_path
+        content_path = os.path.join(self.root, self.name, "draft_content.json")
+        if os.path.exists(content_path):
+            try:
+                with open(content_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                data["static_cover_image_path"] = cover_filename
+                with open(content_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False)
+            except Exception as e:
+                print(f"⚠️ Failed to update static_cover_image_path: {e}")
+                return False
+
+        # 写入 draft_meta_info.json 的 draft_cover
+        meta_path = os.path.join(self.root, self.name, "draft_meta_info.json")
+        if os.path.exists(meta_path):
+            try:
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                meta["draft_cover"] = cover_filename
+                with open(meta_path, "w", encoding="utf-8") as f:
+                    json.dump(meta, f, ensure_ascii=False)
+            except Exception as e:
+                print(f"⚠️ Failed to update draft_cover in meta: {e}")
+                # meta 更新失败不算致命错误，content 已经成功了
+
+        print(f"🎬 Cover set: {cover_filename}")
+        return True
+
+    def set_cover_from_frame(
+        self,
+        frame_path: str,
+        *,
+        copy_to_draft: bool = True,
+    ) -> bool:
+        """
+        设置封面为视频的某一帧（等同 set_cover，语义别名）。
+
+        Args:
+            frame_path: 帧截图路径
+            copy_to_draft: 是否复制到草稿目录
+
+        Returns:
+            成功返回 True
+        """
+        return self.set_cover(frame_path, copy_to_draft=copy_to_draft)
+
+    # ---------- 调节补丁 ----------
     def _force_activate_adjustments(self):
         content_path = os.path.join(self.root, self.name, "draft_info.json")
         if not os.path.exists(content_path):

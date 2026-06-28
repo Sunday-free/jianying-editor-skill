@@ -192,7 +192,7 @@ class MediaOpsMixin:
         self._cloud_audio_patches[dummy_path] = {"id": query, "type": "music"}
 
         # 3. 使用 Mock 素材
-        from core.mocking_ops import MockAudioMaterial
+        from jy_core.mocking_ops import MockAudioMaterial
 
         mat = MockAudioMaterial(query, final_dur_us, name or f"CloudMusic_{query}", dummy_path)
         seg = draft.AudioSegment(
@@ -231,12 +231,15 @@ class MediaOpsMixin:
         except SegmentOverlap:
             return False
 
-    def _ensure_track(self, track_type, track_name):
+    def _ensure_track(self, track_type, track_name, absolute_index=None):
         """确保轨道存在，不存在则创建。"""
         if not track_name:
             return
         if track_name not in self.script.tracks:
-            self.script.add_track(track_type, track_name)
+            kwargs = {}
+            if absolute_index is not None:
+                kwargs["absolute_index"] = absolute_index
+            self.script.add_track(track_type, track_name, **kwargs)
 
     def _calculate_duration(self, req_dur, phys_dur_available):
         """计算实际应用时长，带容错。"""
