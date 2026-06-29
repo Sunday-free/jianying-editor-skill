@@ -18,6 +18,8 @@ from utils.formatters import (
     resolve_enum_with_synonyms, format_srt_time, safe_tim, 
     get_duration_ffprobe_cached, get_default_drafts_root, get_all_drafts
 )
+from utils.mac_draft_patcher import patch_draft_for_mac
+from utils.platform_detect import is_mac
 
 # 导入基类与 Mixins
 from jy_core.project_base import JyProjectBase
@@ -54,6 +56,11 @@ class JyProject(JyProjectBase, MediaOpsMixin, TextOpsMixin, VfxOpsMixin, Mocking
         self._force_activate_adjustments()
         
         draft_path = os.path.join(self.root, self.name)
+        
+        # Mac 协议适配：修复 draft_info.json 缺失字段
+        if is_mac():
+            patch_draft_for_mac(draft_path)
+        
         if os.path.exists(draft_path):
             os.utime(draft_path, None)
         print(f"✅ Project '{self.name}' saved and patched.")

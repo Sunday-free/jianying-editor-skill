@@ -19,6 +19,7 @@ class TextOpsMixin:
         start_time: Union[str, int] = None,
         duration: Union[str, int] = "3s",
         track_name: str = "Subtitles",
+        is_subtitle: bool = True,
         **kwargs,
     ):
         if start_time is None:
@@ -46,6 +47,8 @@ class TextOpsMixin:
             text_kwargs["border"] = draft.TextBorder(color=(0.0, 0.0, 0.0), alpha=1.0, width=40.0)
         if "clip_settings" not in text_kwargs:
             text_kwargs["clip_settings"] = draft.ClipSettings(transform_y=-0.8)
+        # 标记为字幕类型：auto_wrapping=True → 素材 JSON type 为 "subtitle"（剪映显示“应用到全部字幕”）
+        text_kwargs["style"].auto_wrapping = is_subtitle
 
         seg = draft.TextSegment(text, draft.Timerange(start_us, dur_us), **text_kwargs)
 
@@ -73,6 +76,7 @@ class TextOpsMixin:
         start_time: Union[str, int] = None,
         duration: Union[str, int] = "3s",
         track_name: str = "Subtitles",
+        is_subtitle: bool = True,
         **kwargs,
     ):
         """
@@ -104,7 +108,7 @@ class TextOpsMixin:
                 start = idx + len(word)
 
         kwargs["rich_spans"] = spans
-        return self.add_text_simple(text, start_time, duration, track_name, **kwargs)
+        return self.add_text_simple(text, start_time, duration, track_name, is_subtitle=is_subtitle, **kwargs)
 
     def set_subtitle_keywords(self, keywords_config: dict):
         """设置字幕关键词高亮配置，注入 draft_info.json 的 config 节点"""

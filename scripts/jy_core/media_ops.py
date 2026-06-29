@@ -6,6 +6,8 @@ from pyJianYingDraft import trange
 from pyJianYingDraft.exceptions import SegmentOverlap
 from utils.formatters import get_duration_ffprobe_cached, safe_tim
 from utils.media_normalizer import normalize_webm_for_jianying
+from utils.platform_detect import is_mac
+from utils.mac_staging import stage_for_mac
 
 
 class MediaOpsMixin:
@@ -22,6 +24,9 @@ class MediaOpsMixin:
         source_start: Union[str, int] = 0,
         **kwargs,
     ):
+        if is_mac() and not media_path.startswith(os.path.expanduser("~/Movies/")):
+            media_path = stage_for_mac(media_path, self.draft_dir)
+
         if not os.path.exists(media_path):
             print(f"❌ Media Missing: {media_path}")
             return None
@@ -51,6 +56,9 @@ class MediaOpsMixin:
         track_name: str = "AudioTrack",
         **kwargs,
     ):
+        if is_mac() and not media_path.startswith(os.path.expanduser("~/Movies/")):
+            media_path = stage_for_mac(media_path, self.draft_dir)
+
         if start_time is None:
             start_time = self.get_track_duration(track_name)
         self._ensure_track(draft.TrackType.audio, track_name)
