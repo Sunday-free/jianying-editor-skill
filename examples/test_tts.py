@@ -53,9 +53,18 @@ async def main():
 
     # ---- 测试用例 ----
     test_cases = [
-        ("你好，欢迎使用智能语音合成系统。", "zh_male_huoli"),
-        ("今天天气真不错，适合出去散步。", "zh_female_xiaopengyou"),
-        ("人工智能正在改变我们的生活方式。", "BV408_streaming"),
+        ("你好，欢迎使用智能语音合成系统。", "zh_male_dayi_saturn_bigtts"),
+        ("今天天气真不错，适合出去散步。", "zh_female_mizai_saturn_bigtts"),
+        ("人工智能正在改变我们的生活方式。", "saturn_zh_male_baichequanshu_jianying"),
+        ("人工智能正在改变我们的生活方式。", "DiT_zh_male_zmtlongjiang_jianying"),
+        ("人工智能正在改变我们的生活方式。", "ICL_zh_male_denghaorong"),
+        ("人工智能正在改变我们的生活方式。", "zh_male_iclvop_chenxuanjiangjun"),
+        ("人工智能正在改变我们的生活方式。", "zh_male_iclvop_xiaolinhuangshang"),
+        ("人工智能正在改变我们的生活方式。", "zh_male_laotouzhsk_emo_v2_mars_bigtts"),
+        ("人工智能正在改变我们的生活方式。", "zh_female_xiaohe_saturn_bigtts"),
+        ("人工智能正在改变我们的生活方式。", "ICL_zh_male_zjxqinche"),
+        ("人工智能正在改变我们的生活方式。", "saturn_zh_female_xinwenzhubo"),
+        ("人工智能正在改变我们的生活方式。", "zh-CN-YunzeNeural"),
     ]
 
     results = []
