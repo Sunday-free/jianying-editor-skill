@@ -114,7 +114,7 @@ def stage_for_mac(media_path: str, draft_dir: str) -> str:
     # 1) 尝试硬链接
     try:
         os.link(media_path, target)
-        print(f"  [Mac Staging] 硬链接: {os.path.basename(media_path)} → {target}")
+        # print(f"  [Mac Staging] 硬链接: {os.path.basename(media_path)} → {target}")
         return target
     except OSError as e:
         print(f"  [Mac Staging] 硬链接失败 ({e})，降级为拷贝...")

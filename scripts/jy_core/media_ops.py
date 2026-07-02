@@ -42,10 +42,10 @@ class MediaOpsMixin:
             ext = ".mp4"
 
         if ext in [".mp3", ".wav", ".aac", ".flac", ".m4a", ".ogg"]:
-            return self.add_audio_safe(media_path, start_time, duration, track_name or "AudioTrack")
+            return self.add_audio_safe(media_path, start_time, duration, track_name or "AudioTrack", **kwargs)
 
         return self._add_video_safe(
-            media_path, start_time, duration, track_name or "VideoTrack", source_start=source_start
+            media_path, start_time, duration, track_name or "VideoTrack", source_start=source_start, **kwargs
         )
 
     def add_audio_safe(
@@ -73,7 +73,7 @@ class MediaOpsMixin:
         actual_duration = self._calculate_duration(duration, phys_duration)
 
         seg = draft.AudioSegment(
-            mat, trange(start_us, actual_duration), source_timerange=trange(0, actual_duration)
+            mat, trange(start_us, actual_duration), source_timerange=trange(0, actual_duration), **kwargs
         )
         target_track = self._find_available_audio_track_name(track_name, seg)
         self.script.add_segment(seg, target_track)
