@@ -28,6 +28,8 @@ class StickerOpsMixin:
         transform_x: float = 0.0,
         transform_y: float = 0.0,
         scale: float = 1.0,
+        scale_x: Optional[float] = None,
+        scale_y: Optional[float] = None,
         rotation: float = 0.0,
         opacity: float = 1.0,
     ) -> Optional[draft.StickerSegment]:
@@ -41,7 +43,9 @@ class StickerOpsMixin:
             track_name: 目标轨道名称
             transform_x: X 轴偏移 (-1.0 ~ 1.0，0 为居中)
             transform_y: Y 轴偏移 (-1.0 ~ 1.0，0 为居中)
-            scale: 缩放比例 (1.0 = 原始大小)
+            scale: 等比缩放比例 (1.0 = 原始大小)
+            scale_x: 水平缩放（覆盖 scale）
+            scale_y: 垂直缩放（覆盖 scale）
             rotation: 旋转角度（度）
             opacity: 不透明度 (0.0 ~ 1.0)
 
@@ -54,11 +58,14 @@ class StickerOpsMixin:
         # 贴纸轨道必须位于最顶层（高于字幕 text=15000），手动指定 absolute_index
         self._ensure_track(draft.TrackType.sticker, track_name, absolute_index=20000)
 
+        sx = scale_x if scale_x is not None else scale
+        sy = scale_y if scale_y is not None else scale
+
         clip_settings = draft.ClipSettings(
             transform_x=transform_x,
             transform_y=transform_y,
-            scale_x=scale,
-            scale_y=scale,
+            scale_x=sx,
+            scale_y=sy,
             rotation=rotation,
             alpha=opacity,
         )
