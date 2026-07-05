@@ -25,6 +25,7 @@ scripts/cloud_cache/
 
 .codebuddy/
 .venv/
+output_tts/
 
 # Assets (large synced files - keep tracked manually)
 # assets/jy_sync/

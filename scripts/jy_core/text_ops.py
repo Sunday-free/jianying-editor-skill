@@ -1,5 +1,6 @@
 import asyncio
 import os
+import random
 import re
 import threading
 from typing import Union
@@ -37,6 +38,9 @@ class TextOpsMixin:
         anim_out_duration = kwargs.pop("anim_out_duration", None)
         anim_loop_duration = kwargs.pop("anim_loop_duration", None)
 
+        # 花字效果必须在 add_segment 之前应用，否则 TextSegment.export_material() 不会写入 effectStyle
+        effect_id = kwargs.pop("effect", None)
+
         # 仅透传 TextSegment 支持的字段
         allowed_keys = {"font", "style", "clip_settings", "border", "background", "shadow", "rich_spans"}
         text_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
@@ -51,6 +55,10 @@ class TextOpsMixin:
         text_kwargs["style"].auto_wrapping = is_subtitle
 
         seg = draft.TextSegment(text, draft.Timerange(start_us, dur_us), **text_kwargs)
+
+        # 应用花字效果（必须在 add_segment 之前，确保 export_material 写入 effectStyle）
+        if effect_id:
+            seg.add_effect(effect_id)
 
         # 为动画名称做同义词+模糊解析，支持如 "Typewriter" -> "复古打字机"
         if anim_in:
@@ -67,6 +75,53 @@ class TextOpsMixin:
                 seg.add_animation(loop_enum, duration=anim_loop_duration)
 
         self.script.add_segment(seg, track_name)
+        return seg
+
+    def add_styled_text(
+        self,
+        text: str,
+        style_id: str,
+        start_time: Union[str, int] = None,
+        duration: Union[str, int] = "3s",
+        track_name: str = "Subtitles",
+        is_subtitle: bool = False,
+        **kwargs,
+    ):
+        """
+        添加花字（Styled Text / 花字）。
+
+        花字效果自带描边、阴影、颜色等视觉样式，因此使用花字时会：
+        - 移除默认的黑色描边（避免与花字内置样式冲突）
+        - 不添加文本阴影
+        - 文本颜色设为白色（花字会覆盖颜色）
+
+        Args:
+            text: 文字内容
+            style_id: 花字 style_id（来自 data/cloud_text_styles.csv）
+            start_time: 起始时间
+            duration: 持续时间
+            track_name: 轨道名
+            is_subtitle: 是否为字幕类型
+            **kwargs: 透传给 add_text_simple 的额外参数（font/style/clip_settings 等）
+        """
+        if style_id:
+            # 花字自带描边/阴影/颜色，强制重置避免样式冲突（参考 capcut-mate add_captions.py）
+            kwargs["border"] = None
+            kwargs["shadow"] = None
+            if "style" in kwargs and kwargs["style"] is not None:
+                kwargs["style"].color = (1.0, 1.0, 1.0)  # 白色
+            else:
+                kwargs["style"] = draft.TextStyle(size=5.0, color=(1.0, 1.0, 1.0))
+
+        seg = self.add_text_simple(
+            text,
+            start_time=start_time,
+            duration=duration,
+            track_name=track_name,
+            is_subtitle=is_subtitle,
+            effect=style_id,  # 通过 add_text_simple 在 add_segment 之前应用花字
+            **kwargs,
+        )
         return seg
 
     def add_rich_text(

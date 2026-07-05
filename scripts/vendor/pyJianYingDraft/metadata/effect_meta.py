@@ -105,8 +105,12 @@ class EffectEnum(Enum):
         Raises:
             `ValueError`: 特效名称不存在
         """
+        if name is None:
+            raise ValueError("Effect name must not be None")
         name = name.lower().replace(" ", "").replace("_", "")
         for effect in cls:
+            if effect.name is None:
+                continue
             if effect.name.lower().replace(" ", "").replace("_", "") == name:
                 return effect
         raise ValueError(f"Effect named '{name}' not found")

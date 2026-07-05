@@ -2,6 +2,8 @@ import csv
 import json
 import os
 import sys
+# 将 scripts 目录加入路径，确保可以 import universal_tts
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 from utils.formatters import find_draft_content_path
 

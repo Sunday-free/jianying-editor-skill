@@ -179,7 +179,6 @@ class MockingOpsMixin:
             print(f"⚠️ Force activation failed: {e}")
 
     def _patch_cloud_material_ids(self):
-        if not self._cloud_audio_patches and not self._cloud_text_patches: return
         content_path = os.path.join(self.root, self.name, "draft_info.json")
         if not os.path.exists(content_path):
             content_path = os.path.join(self.root, self.name, "draft_content.json")
@@ -191,6 +190,8 @@ class MockingOpsMixin:
 
             has_modified = False
             materials = data.get("materials", {})
+
+            # --- 音频云素材补丁 ---
             audios = materials.get("audios", [])
             for mat in audios:
                 path = mat.get("path", "")
@@ -200,7 +201,7 @@ class MockingOpsMixin:
                             mat["music_id"] = patch_info["id"]
                             mat["type"] = "music"
                             has_modified = True
-            
+
             if has_modified:
                 with open(content_path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False)

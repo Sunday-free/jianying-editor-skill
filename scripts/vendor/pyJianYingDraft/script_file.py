@@ -75,7 +75,7 @@ class ScriptMaterial:
     @overload
     def __contains__(self, item: Union[AudioFade, AudioEffect]) -> bool: ...
     @overload
-    def __contains__(self, item: Union[SegmentAnimations, VideoEffect, Transition, Filter]) -> bool: ...
+    def __contains__(self, item: Union[SegmentAnimations, VideoEffect, Transition, Filter, TextBubble]) -> bool: ...
 
     def __contains__(self, item) -> bool:
         if isinstance(item, VideoMaterial):
@@ -94,6 +94,8 @@ class ScriptMaterial:
             return item.global_id in [transition.global_id for transition in self.transitions]
         elif isinstance(item, Filter):
             return item.global_id in [filter_.global_id for filter_ in self.filters]
+        elif isinstance(item, TextBubble):
+            return item.global_id in [f.global_id for f in self.filters if hasattr(f, 'global_id')]
         else:
             raise TypeError("Invalid argument type '%s'" % type(item))
 
