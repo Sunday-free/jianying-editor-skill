@@ -113,7 +113,7 @@ class ProGuiRecorder:
         default_geo = "300x240"  # 略微增加高度适配路径显示
         if os.path.exists(self.config_path):
             try:
-                with open(self.config_path, "r") as f:
+                with open(self.config_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
                     pos = config.get("window_pos", "")
                     if pos:
@@ -126,7 +126,7 @@ class ProGuiRecorder:
     def on_close(self):
         try:
             geo = self.root.geometry()
-            with open(self.config_path, "w") as f:
+            with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump({"window_pos": geo}, f)
         except:
             pass
