@@ -115,6 +115,55 @@ class EffectEnum(Enum):
                 return effect
         raise ValueError(f"Effect named '{name}' not found")
 
+    @classmethod
+    def register(cls: "type[EffectEnumSubclass]", name: str, resource_id: str,
+                 is_vip: bool = False, effect_id: Optional[str] = None,
+                 md5: str = "", params: Optional[List[EffectParam]] = None) -> "EffectEnumSubclass":
+        """运行时注册一个字体/特效，使其可被 getattr(cls, name) 或 from_name 解析。
+
+        用于支持 FontType 中未预置的自定义字体（如剪映本地缓存字体）：
+        传入草稿中该字体的真实 resource_id，渲染时即可被识别应用。
+        已存在同名成员则直接返回，不重复注册。
+        """
+        if name in cls.__members__:
+            return cls[name]
+        if effect_id is None:
+            effect_id = resource_id
+        if params is None:
+            params = []
+        meta = EffectMeta(name, is_vip, resource_id, effect_id, md5, params)
+        member = object.__new__(cls)
+        member._name_ = name
+        member._value_ = meta
+        # 先 setattr（名字尚未登记时 Enum 元类允许），使其可作为类属性被 getattr 解析；
+        # 再补 _member_names_ 与 _member_map_，使迭代 / from_name 也能识别。
+        try:
+            setattr(cls, name, member)
+        except Exception:
+            pass
+        cls._member_map_[name] = member
+        try:
+            if name not in cls._member_names_:
+                cls._member_names_.append(name)
+        except Exception:
+            pass
+        try:
+            v2m = dict(cls._value2member_map_)
+            v2m[meta] = member
+            cls._value2member_map_ = v2m
+        except Exception:
+            pass
+        return member
+
+    @classmethod
+    def register_font(cls, name: str, resource_id: str, md5: str = "", is_vip: bool = False):
+        """注册自定义字体（拓展 FontType）。
+
+        resource_id / md5 取自剪映草稿 materials.fonts 或
+        ~/Movies/JianyingPro/.../Cache/effect/<resource_id>/<md5>/font.ttf。
+        """
+        return cls.register(name, resource_id, is_vip=is_vip, effect_id=resource_id, md5=md5)
+
 # 动画元数据
 class AnimationMeta:
     """动画元数据, 用于视频/文字片段的入场/出场/组合动画"""
