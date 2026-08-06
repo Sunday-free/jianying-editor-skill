@@ -66,7 +66,8 @@ class MediaOpsMixin:
         try:
             mat = draft.AudioMaterial(media_path)
             phys_duration = mat.duration
-        except Exception:
+        except Exception as e:
+            print(f"⚠️ AudioMaterial 解析失败（素材将被跳过）: {os.path.basename(media_path)} -> {type(e).__name__}: {e}")
             return None
 
         start_us = safe_tim(start_time)
@@ -96,7 +97,8 @@ class MediaOpsMixin:
             fallback_duration_us = safe_tim(duration) * 10 if duration else None
             mat = draft.VideoMaterial(media_path, duration=fallback_duration_us)
             phys_duration = mat.duration
-        except Exception:
+        except Exception as e:
+            print(f"⚠️ VideoMaterial 解析失败（素材将被跳过）: {os.path.basename(media_path)} -> {type(e).__name__}: {e}")
             return None
 
         if not phys_duration or phys_duration <= 0:

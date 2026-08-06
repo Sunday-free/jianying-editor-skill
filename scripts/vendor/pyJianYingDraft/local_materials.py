@@ -1,9 +1,18 @@
 import os
 import uuid
+import threading
 import pymediainfo
 
 from typing import Optional, Literal
 from typing import Dict, Any
+
+# libmediainfo / pymediainfo 非线程安全：批量渲染时多个任务并发解析音视频，
+# libmediainfo 的全局状态会被并发调用搅乱，间歇返回 None 时长或损坏的 XML
+# (ParseError: syntax error)，导致 AudioMaterial / VideoMaterial 构造失败、
+# 素材被静默丢弃（单跑没事、批量随机丢段的根因）。
+# 用一个全局锁串行化所有 MediaInfo 调用，从根上消除竞态。
+_MEDIAINFO_LOCK = threading.Lock()
+
 
 class CropSettings:
     """素材的裁剪设置, 各属性均在0-1之间, 注意素材的坐标原点在左上角"""
@@ -85,8 +94,9 @@ class VideoMaterial:
             raise ValueError(f"不支持的视频素材类型 '{postfix}'")
 
         try:
-            info: pymediainfo.MediaInfo = \
-                pymediainfo.MediaInfo.parse(path, mediainfo_options={"File_TestContinuousFileNames": "0"})  # type: ignore
+            with _MEDIAINFO_LOCK:
+                info: pymediainfo.MediaInfo = \
+                    pymediainfo.MediaInfo.parse(path, mediainfo_options={"File_TestContinuousFileNames": "0"})  # type: ignore
             
             # 有视频轨道的视为视频素材
             if len(info.video_tracks):
@@ -209,14 +219,18 @@ class AudioMaterial:
         self.material_id = uuid.uuid4().hex
         self.path = path
 
-        if not pymediainfo.MediaInfo.can_parse():
-            raise ValueError("不支持的音频素材类型 %s" % os.path.splitext(path)[1])
-        info: pymediainfo.MediaInfo = pymediainfo.MediaInfo.parse(path)  # type: ignore
-        if len(info.video_tracks):
-            raise ValueError("音频素材不应包含视频轨道")
-        if not len(info.audio_tracks):
-            raise ValueError(f"给定的素材文件 {path} 没有音频轨道")
-        self.duration = int(info.audio_tracks[0].duration * 1e3)  # type: ignore
+        with _MEDIAINFO_LOCK:
+            if not pymediainfo.MediaInfo.can_parse():
+                raise ValueError("不支持的音频素材类型 %s" % os.path.splitext(path)[1])
+            info: pymediainfo.MediaInfo = pymediainfo.MediaInfo.parse(path)  # type: ignore
+            if len(info.video_tracks):
+                raise ValueError("音频素材不应包含视频轨道")
+            if not len(info.audio_tracks):
+                raise ValueError(f"给定的素材文件 {path} 没有音频轨道")
+            dur = info.audio_tracks[0].duration
+            if dur is None:
+                raise ValueError(f"给定的素材文件 {path} 解析不到音频时长（duration 为 None）")
+            self.duration = int(dur * 1e3)  # type: ignore
 
     def export_json(self) -> Dict[str, Any]:
         return {
