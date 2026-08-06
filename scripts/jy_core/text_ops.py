@@ -6,6 +6,7 @@ import threading
 from typing import Union
 
 import pyJianYingDraft as draft
+from pyJianYingDraft.text_segment import _utf16_len
 from utils.formatters import safe_tim
 
 
@@ -150,9 +151,14 @@ class TextOpsMixin:
                 if idx == -1:
                     break
 
+                # 剪映 style.range 按 UTF-16 code unit 计数（emoji/扩展平面字符占 2），
+                # 而 str.find()/len() 是 code point 索引；需把匹配区间换算成 UTF-16 坐标，
+                # 否则高亮区间在含 emoji 文本上会整体偏移、错位。
+                cp_start = idx
+                cp_end = idx + len(word)
                 span = draft.RichTextSpan(
-                    idx,
-                    idx + len(word),
+                    _utf16_len(text[:cp_start]),
+                    _utf16_len(text[:cp_end]),
                     color=h.get("color"),
                     size=h.get("size"),
                     bold=h.get("bold"),

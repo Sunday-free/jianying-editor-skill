@@ -14,6 +14,20 @@ from .animation import SegmentAnimations, Text_animation
 from .metadata import FontType, EffectMeta
 from .metadata import TextIntro, TextOutro, TextLoopAnim
 
+
+def _utf16_len(text: str) -> int:
+    """剪映内部以 UTF-16 code unit 计算文本长度（BMP 字符=1，emoji/扩展平面字符=2）。
+
+    Python 的 ``len(str)`` 给出的是 Unicode code point 数，对表情符号等位于
+    补充平面的字符只算 1，但剪映草稿 ``style.range`` 必须按 UTF-16 code unit
+    标记，否则越界部分的字符将脱离样式覆盖（典型表现：emoji 之后的字符字体
+    不生效、被默认样式替换、放大）。
+    """
+    if not text:
+        return 0
+    return len(text.encode("utf-16-le")) // 2
+
+
 class TextStyle:
     """字体样式类"""
 
@@ -482,7 +496,7 @@ class TextSegment(VisualSegment):
                     }
                 }
             },
-            "range": [0, len(self.text)],
+            "range": [0, _utf16_len(self.text)],
             "size": self.style.size,
             "bold": self.style.bold,
             "italic": self.style.italic,

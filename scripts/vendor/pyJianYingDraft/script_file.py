@@ -16,7 +16,7 @@ from .segment import BaseSegment, Speed, ClipSettings
 from .audio_segment import AudioSegment, AudioFade, AudioEffect
 from .video_segment import VideoSegment, StickerSegment, SegmentAnimations, VideoEffect, Transition, Filter, BackgroundFilling
 from .effect_segment import EffectSegment, FilterSegment
-from .text_segment import TextSegment, TextStyle, TextBubble
+from .text_segment import TextSegment, TextStyle, TextBubble, _utf16_len
 from .track import TrackType, BaseTrack, Track
 
 from .metadata import VideoSceneEffectType, VideoCharacterEffectType, FilterType
@@ -797,7 +797,7 @@ class ScriptFile:
 
             content = json.loads(mat["content"])
             if recalc_style:
-                content["styles"] = __recalc_style_range(len(content["text"]), len(text), content["styles"])
+                content["styles"] = __recalc_style_range(_utf16_len(content["text"]), _utf16_len(text), content["styles"])
             content["text"] = text
             mat["content"] = json.dumps(content, ensure_ascii=False)
             replaced = True
@@ -824,7 +824,7 @@ class ScriptFile:
                     try:
                         content = json.loads(mat["content"])
                         if recalc_style:
-                            content["styles"] = __recalc_style_range(len(content["text"]), len(new_text), content["styles"])
+                            content["styles"] = __recalc_style_range(_utf16_len(content["text"]), _utf16_len(new_text), content["styles"])
                         content["text"] = new_text
                         mat["content"] = json.dumps(content, ensure_ascii=False)
                     except json.JSONDecodeError:
