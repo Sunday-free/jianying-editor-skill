@@ -99,7 +99,7 @@ class ScriptMaterial:
         else:
             raise TypeError("Invalid argument type '%s'" % type(item))
 
-    def export_json(self) -> Dict[str, List[Any]]:
+    def export_json(self, effect_cache_root: Optional[str] = None) -> Dict[str, List[Any]]:
         return {
             "ai_translates": [],
             "audio_balances": [],
@@ -123,7 +123,7 @@ class ScriptMaterial:
             "loudnesses": [],
             "manual_deformations": [],
             "masks": self.masks,
-            "material_animations": [ani.export_json() for ani in self.animations],
+            "material_animations": [ani.export_json(effect_cache_root) for ani in self.animations],
             "material_colors": [],
             "multi_language_refs": [],
             "placeholders": [],
@@ -203,6 +203,9 @@ class ScriptFile:
         self.imported_materials = {}
         self.imported_tracks = []
         self.subtitle_keywords_config = None
+        # 本机剪映特效缓存根目录，由上层 (jianying-editor-skill) 探测后注入，
+        # 用于自定义贴纸动画补全 material_animations 的 path 字段；默认为 None（不拼 path）
+        self.effect_cache_root = None
 
         with open(assets.get_asset_path('DRAFT_INFO_TEMPLATE'), "r", encoding="utf-8") as f:
             self.content = json.load(f)
@@ -861,7 +864,7 @@ class ScriptFile:
         self.content["duration"] = self.duration
         self.content["config"]["maintrack_adsorb"] = self.maintrack_adsorb
         self.content["canvas_config"] = {"width": self.width, "height": self.height, "ratio": "original"}
-        self.content["materials"] = self.materials.export_json()
+        self.content["materials"] = self.materials.export_json(self.effect_cache_root)
         
         if self.subtitle_keywords_config:
             self.content["config"]["subtitle_keywords_config"] = self.subtitle_keywords_config

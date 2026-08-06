@@ -4,7 +4,7 @@ import shutil
 import time
 
 import pyJianYingDraft as draft
-from utils.formatters import get_default_drafts_root
+from utils.formatters import get_default_drafts_root, get_default_cache_root
 
 
 class JyProjectBase:
@@ -25,6 +25,7 @@ class JyProjectBase:
         script_instance=None,
     ):
         self.root = os.path.abspath(drafts_root or get_default_drafts_root())
+        cache_root = get_default_cache_root()
         if not os.path.exists(self.root):
             try:
                 os.makedirs(self.root)
@@ -46,6 +47,7 @@ class JyProjectBase:
 
         if script_instance:
             self.script = script_instance
+            self.script.effect_cache_root = cache_root
             self._explicit_res = True
             return
 
@@ -76,9 +78,11 @@ class JyProjectBase:
             print(f"Loading existing project: {self.name}")
             try:
                 self.script = self.df.load_template(self.name)
+                self.script.effect_cache_root = cache_root
             except Exception as e:
                 print(f"Load failed ({e}), forcing recreate...")
                 self.script = self.df.create_draft(self.name, width, height, allow_replace=True)
+                self.script.effect_cache_root = cache_root
         else:
             print(f"Creating new project: {self.name}")
             max_retries = 3
@@ -87,6 +91,7 @@ class JyProjectBase:
                     self.script = self.df.create_draft(
                         self.name, width, height, allow_replace=overwrite
                     )
+                    self.script.effect_cache_root = cache_root
                     break
                 except PermissionError:
                     if attempt < max_retries - 1:

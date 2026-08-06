@@ -153,3 +153,8 @@ class TextIntro(EffectEnum):
     预览打字             = AnimationMeta("预览打字", True, 0.800, "7268152375536259639", "20853726", "964a6cb51a01c0ddeb839010765023a6")
     飞入                 = AnimationMeta("飞入", True, 0.500, "7029231035007111710", "1644319", "9980148af0641a8501561320ec8f967b")
     鼠标点击             = AnimationMeta("鼠标点击", True, 1.650, "7350128013637325353", "53149407", "1ba2fbaaeb30f7756ecd92e0121b7ac0")
+
+    # 自定义贴纸动画（material_type=sticker, category_id=ruchang），由剪映草稿中提取的 resource_id 注册
+    # resource_id/effect_id 取自素材 material_animations；md5 取自 Cache/effect/<resource_id>/<md5> 路径
+    # category_id/category_name 标识为自定义贴纸动画，export_json 据此补全 path 等字段，避免剪映报素材缺失
+    上下跳跃             = AnimationMeta("上下跳跃", False, 0.500, "7646332180620250422", "7646332180620250422", "425f3c8c7be4d4df8e2c09dc7eec486d", "ruchang", "入场")

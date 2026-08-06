@@ -1,5 +1,7 @@
 """定义视频/文本动画相关类"""
 
+import os
+import time
 import uuid
 
 from typing import Union, Optional
@@ -10,6 +12,24 @@ from .time_util import Timerange
 from .metadata import AnimationMeta
 from .metadata import IntroType, OutroType, GroupAnimationType
 from .metadata import TextIntro, TextOutro, TextLoopAnim
+
+
+def _effect_cache_path(resource_id: str, md5: str, cache_root: str) -> str:
+    """返回剪映特效缓存文件绝对路径 (material_animations 的 path 字段)。
+
+    平台相关的 cache_root 由上层 (jianying-editor-skill) 探测后传入，
+    本库不写任何平台分支。优先返回真实存在的缓存文件；
+    若不存在则回退到 cache_root/effect/<resource_id>/<md5>。
+    """
+    rel = os.path.join("effect", resource_id, md5)
+    if cache_root and os.path.isdir(os.path.join(cache_root, resource_id, md5)):
+        return os.path.join(cache_root, rel)
+    return os.path.join(cache_root, rel) if cache_root else rel
+
+
+def _gen_request_id() -> str:
+    """生成一个与剪映草稿一致的 request_id（毫秒时间戳 + 20位大写hex）。"""
+    return f"{int(time.time() * 1000)}{uuid.uuid4().hex[:20].upper()}"
 
 class Animation:
     """一个视频/文本动画效果"""
@@ -35,12 +55,16 @@ class Animation:
         self.name = animation_meta.title
         self.effect_id = animation_meta.effect_id
         self.resource_id = animation_meta.resource_id
+        # 自定义贴纸动画（material_type=sticker）需要补 path / category 等字段，否则剪映报素材缺失
+        self.md5 = getattr(animation_meta, "md5", "")
+        self.category_id = getattr(animation_meta, "category_id", "")
+        self.category_name = getattr(animation_meta, "category_name", "")
 
         self.start = start
         self.duration = duration
 
-    def export_json(self) -> Dict[str, Any]:
-        return {
+    def export_json(self, effect_cache_root: Optional[str] = None) -> Dict[str, Any]:
+        result = {
             "anim_adjust_params": None,
             "platform": "all",
             "panel": "video" if self.is_video_animation else "",
@@ -53,8 +77,17 @@ class Animation:
 
             "start": self.start,
             "duration": self.duration,
-            # 不导出path和request_id
         }
+        # 自定义贴纸动画：补全剪映定位素材所需的 path / category 等字段
+        # 需要上层传入 effect_cache_root（本机特效缓存根）才拼 path，否则保持内置动画行为
+        if self.category_id and effect_cache_root:
+            result["path"] = _effect_cache_path(self.resource_id, self.md5, effect_cache_root)
+            result["third_resource_id"] = "0"
+            result["source_platform"] = 1
+            result["category_id"] = self.category_id
+            result["category_name"] = self.category_name
+            result["request_id"] = _gen_request_id()
+        return result
 
 class VideoAnimation(Animation):
     """一个视频动画效果"""
@@ -131,10 +164,10 @@ class SegmentAnimations:
 
         self.animations.append(animation)
 
-    def export_json(self) -> Dict[str, Any]:
+    def export_json(self, effect_cache_root: Optional[str] = None) -> Dict[str, Any]:
         return {
             "id": self.animation_id,
             "type": "sticker_animation",
             "multi_language_current": "none",
-            "animations": [animation.export_json() for animation in self.animations]
+            "animations": [animation.export_json(effect_cache_root) for animation in self.animations]
         }

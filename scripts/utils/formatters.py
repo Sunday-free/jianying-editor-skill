@@ -107,6 +107,20 @@ def get_default_drafts_root() -> str:
     return candidates[0] if candidates else fallback
 
 
+def get_default_cache_root() -> str:
+    """自动探测剪映特效缓存目录 (Windows / macOS 跨平台)。
+
+    草稿目录与缓存目录都在 'User Data' 下互为兄弟目录
+    (Projects/com.lveditor.draft 与 Cache)，因此直接复用
+    get_default_drafts_root() 的探测结果反推 Cache 路径，无需另写一套平台分支。
+    """
+    root = get_default_drafts_root()
+    if "User Data" in root:
+        base = root.rsplit("User Data", 1)[0] + "User Data"
+        return os.path.join(base, "Cache")
+    return os.path.join(root, "Cache")
+
+
 def get_all_drafts(root_path: str = None) -> List[Dict]:
     """获取所有草稿并按修改时间排序"""
     root = root_path or get_default_drafts_root()
