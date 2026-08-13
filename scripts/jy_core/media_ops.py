@@ -120,6 +120,7 @@ class MediaOpsMixin:
             mat,
             trange(start_us, actual_duration),
             source_timerange=trange(src_start_us, actual_duration),
+            clip_settings=kwargs.get("clip_settings"),
         )
         self.script.add_segment(seg, track_name)
         return seg
