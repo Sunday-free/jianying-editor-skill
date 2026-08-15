@@ -22,6 +22,8 @@ class TextOpsMixin:
         duration: Union[str, int] = "3s",
         track_name: str = "Subtitles",
         is_subtitle: bool = True,
+        font_path: str = None,
+        effect_path: str = None,
         **kwargs,
     ):
         if start_time is None:
@@ -55,11 +57,11 @@ class TextOpsMixin:
         # 标记为字幕类型：auto_wrapping=True → 素材 JSON type 为 "subtitle"（剪映显示“应用到全部字幕”）
         text_kwargs["style"].auto_wrapping = is_subtitle
 
-        seg = draft.TextSegment(text, draft.Timerange(start_us, dur_us), **text_kwargs)
+        seg = draft.TextSegment(text, draft.Timerange(start_us, dur_us), font_path=font_path, **text_kwargs)
 
         # 应用花字效果（必须在 add_segment 之前，确保 export_material 写入 effectStyle）
         if effect_id:
-            seg.add_effect(effect_id)
+            seg.add_effect(effect_id, path=effect_path)
 
         # 为动画名称做同义词+模糊解析，支持如 "Typewriter" -> "复古打字机"
         if anim_in:

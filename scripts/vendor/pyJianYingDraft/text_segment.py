@@ -217,10 +217,17 @@ class TextBubble:
 class TextEffect(TextBubble):
     """文本花字素材, 与滤镜素材本质上也一致"""
 
+    def __init__(self, effect_id: str, resource_id: str, path: Optional[str] = None):
+        super().__init__(effect_id, resource_id)
+        self.path = path
+
     def export_json(self) -> Dict[str, Any]:
         ret = super().export_json()
         ret["type"] = "text_effect"
         ret["source_platform"] = 1
+        # 写回真实缓存路径；缺省不写 path 会导致剪映在 materials.filters 中找不到花字素材而回落普通文字
+        if self.path:
+            ret["path"] = self.path
         return ret
 
 class TextShadow:
@@ -369,7 +376,8 @@ class TextSegment(VisualSegment):
                  style: Optional[TextStyle] = None, clip_settings: Optional[ClipSettings] = None,
                  border: Optional[TextBorder] = None, background: Optional[TextBackground] = None,
                  shadow: Optional[TextShadow] = None,
-                 rich_spans: Optional[List[RichTextSpan]] = None):
+                 rich_spans: Optional[List[RichTextSpan]] = None,
+                 font_path: Optional[str] = None):
         """创建文本片段, 并指定其时间信息、字体样式及图像调节设置
 
         片段创建完成后, 可通过`ScriptFile.add_segment`方法将其添加到轨道中
@@ -397,6 +405,8 @@ class TextSegment(VisualSegment):
 
         self.bubble = None
         self.effect = None
+        self.font_path = font_path
+        self.effect_path = None
 
     @classmethod
     def create_from_template(cls, text: str, timerange: Timerange, template: "TextSegment") -> "TextSegment":
@@ -405,6 +415,7 @@ class TextSegment(VisualSegment):
                           border=deepcopy(template.border), background=deepcopy(template.background),
                           shadow=deepcopy(template.shadow))
         new_segment.font = deepcopy(template.font)
+        new_segment.font_path = template.font_path
 
         # 处理动画等
         if template.animations_instance:
@@ -414,7 +425,7 @@ class TextSegment(VisualSegment):
         if template.bubble:
             new_segment.add_bubble(template.bubble.effect_id, template.bubble.resource_id)
         if template.effect:
-            new_segment.add_effect(template.effect.effect_id)
+            new_segment.add_effect(template.effect.effect_id, path=template.effect_path)
 
         return new_segment
 
@@ -464,13 +475,17 @@ class TextSegment(VisualSegment):
         self.extra_material_refs.append(self.bubble.global_id)
         return self
 
-    def add_effect(self, effect_id: str) -> "TextSegment":
+    def add_effect(self, effect_id: str, path: Optional[str] = None) -> "TextSegment":
         """根据素材信息添加花字效果, 相应素材信息可通过`ScriptFile.inspect_material`从模板中获取
 
         Args:
             effect_id (`str`): 花字效果的effect_id, 也同时是其resource_id
+            path (`str`, optional): 花字素材在本机的绝对缓存路径
+                (Cache/artistEffect/<effect_id>/<md5>)。剪映靠此路径加载花字资源，
+                缺省写占位符 "C:" 会导致花字无法渲染。导入草稿得到的真实路径应回传。
         """
-        self.effect = TextEffect(effect_id, effect_id)
+        self.effect = TextEffect(effect_id, effect_id, path=path)
+        self.effect_path = path
         self.extra_material_refs.append(self.effect.global_id)
         return self
 
@@ -516,12 +531,14 @@ class TextSegment(VisualSegment):
         if self.font:
             content_json["styles"][0]["font"] = {
                 "id": self.font.resource_id,
-                "path": "D:"  # 并不会真正在此处放置字体文件
+                # 写回真实缓存路径；缺省占位符 "D:" 会导致剪映找不到字体文件而回落默认字体
+                "path": self.font_path or "D:"
             }
         if self.effect:
             content_json["styles"][0]["effectStyle"] = {
                 "id": self.effect.effect_id,
-                "path": "C:"  # 并不会真正在此处放置素材文件
+                # 写回真实缓存路径；缺省占位符 "C:" 会导致剪映找不到花字素材而回落普通文字
+                "path": self.effect_path or "C:"
             }
         if self.shadow:
             content_json["styles"][0]["shadows"] = [self.shadow.export_json()]
@@ -537,7 +554,9 @@ class TextSegment(VisualSegment):
 
             "line_feed": 1,
             "line_max_width": self.style.max_line_width,
-            "force_apply_line_max_width": False,
+            # 强制应用行宽：False 时剪映不按 line_max_width 折行（max_line_width 形同虚设），
+            # 剪映手动字幕恒为 True（见视频模板草稿），故对齐原生行为
+            "force_apply_line_max_width": True,
 
             "check_flag": check_flag,
 
