@@ -14,6 +14,9 @@ from .animation import SegmentAnimations, Text_animation
 from .metadata import FontType, EffectMeta
 from .metadata import TextIntro, TextOutro, TextLoopAnim
 
+# 哨兵值：区分「调用方没传 duration」与「调用方显式传 None」
+_MISSING = object()
+
 
 def _utf16_len(text: str) -> int:
     """剪映内部以 UTF-16 code unit 计算文本长度（BMP 字符=1，emoji/扩展平面字符=2）。
@@ -430,31 +433,39 @@ class TextSegment(VisualSegment):
         return new_segment
 
     def add_animation(self, animation_type: Union[TextIntro, TextOutro, TextLoopAnim],
-                      duration: Union[str, float, None] = None) -> "TextSegment":
+                      duration: Union[str, float, None] = _MISSING) -> "TextSegment":
         """将给定的入场/出场/循环动画添加到此片段的动画列表中, 出入场动画的持续时间可以自行设置, 循环动画则会自动填满其余无动画部分
 
         注意: 若希望同时使用循环动画和入出场动画, 请**先添加出入场动画再添加循环动画**
 
         Args:
             animation_type (`TextIntro`, `TextOutro` or `TextLoopAnim`): 文本动画类型.
-            duration (`str` or `float`, optional): 动画持续时间, 单位为微秒, 仅对入场/出场动画有效.
-                若传入字符串则会调用`tim()`函数进行解析. 默认使用动画的时长
+            duration (`str` or `float`, optional): 动画持续时间, 单位为微秒.
+                若传入字符串则会调用`tim()`函数进行解析. 默认使用动画的时长.
+                对循环动画(`TextLoopAnim`), 显式传入数值可指定循环时长（用于背景标题等长段上
+                指定循环时长）；省略或显式传 `None` 则自动填满段长中除入/出场动画外的剩余部分.
         """
-        if duration is None:
-            duration = animation_type.value.duration
-        duration = min(tim(duration), self.target_timerange.duration)
-
-        if isinstance(animation_type, TextIntro):
-            start = 0
-        elif isinstance(animation_type, TextOutro):
-            start = self.target_timerange.duration - duration
-        elif isinstance(animation_type, TextLoopAnim):
+        if isinstance(animation_type, TextLoopAnim):
             intro_trange = self.animations_instance and self.animations_instance.get_animation_trange("in")
             outro_trange = self.animations_instance and self.animations_instance.get_animation_trange("out")
             start = intro_trange.start if intro_trange else 0
-            duration = self.target_timerange.duration - start - (outro_trange.duration if outro_trange else 0)
+            if duration is _MISSING or duration is None:
+                # 省略或显式传 None：循环动画填满段长中除入/出场动画外的剩余部分
+                duration = self.target_timerange.duration - start - (outro_trange.duration if outro_trange else 0)
+            else:
+                # 显式传入数值：尊重调用方指定的循环时长（用于背景标题等长段）
+                duration = min(tim(duration), self.target_timerange.duration)
         else:
-            raise TypeError("Invalid animation type %s" % type(animation_type))
+            if duration is _MISSING or duration is None:
+                duration = animation_type.value.duration
+            duration = min(tim(duration), self.target_timerange.duration)
+
+            if isinstance(animation_type, TextIntro):
+                start = 0
+            elif isinstance(animation_type, TextOutro):
+                start = self.target_timerange.duration - duration
+            else:
+                raise TypeError("Invalid animation type %s" % type(animation_type))
 
         if self.animations_instance is None:
             self.animations_instance = SegmentAnimations()

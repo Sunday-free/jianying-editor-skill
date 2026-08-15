@@ -262,6 +262,14 @@ class BackgroundFilling:
         self.color = color
 
     def export_json(self) -> Dict[str, Any]:
+        # 剪映真实结构要求：canvas_color 仅 {id,type}；canvas_blur 仅 {id,type,blur}
+        # （都不带 color / source_platform）。vendor 原实现多输出这两个字段，会导致剪映忽略模糊。
+        if self.fill_type == "canvas_blur":
+            return {
+                "id": self.global_id,
+                "type": self.fill_type,
+                "blur": self.blur,
+            }
         return {
             "id": self.global_id,
             "type": self.fill_type,
