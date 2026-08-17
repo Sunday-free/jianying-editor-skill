@@ -58,26 +58,24 @@ class Mask:
         self.round_corner = round_corner
 
     def export_json(self) -> Dict[str, Any]:
+        # 输出与剪映手工稿 materials.common_mask 条目一致的结构(剪映当前版本读 common_mask,
+        # 且「大小 宽/高」必须从 config.width/config.height 直接字段读,嵌套 rect 会导致大小=0)。
+        # 不写 path(基础蒙版按 resource_id 加载,避免本机缓存路径跨机器失效)。
         return {
-            "config": {
-                "aspectRatio": self.aspect_ratio,
-                "centerX": self.center_x,
-                "centerY": self.center_y,
-                "feather": self.feather,
-                "height": self.height,
-                "invert": self.invert,
-                "rotation": self.rotation,
-                "roundCorner": self.round_corner,
-                "width": self.width
-            },
             "id": self.global_id,
-            "name": self.mask_meta.name,
-            "platform": "all",
-            "position_info": "",
-            "resource_type": self.mask_meta.resource_type,
             "resource_id": self.mask_meta.resource_id,
-            "type": "mask"
-            # 不导出path字段
+            "type": "mask",
+            "category": "video",
+            "category_id": "jichu",
+            "category_name": "基础",
+            "name": self.mask_meta.name,
+            "resource_type": self.mask_meta.resource_type,
+            "constant_material_id": self.mask_meta.constant_material_id,
+            "text_config": {"align_type": 15},
+            "config": {
+                "width": self.width,
+                "height": self.height,
+            },
         }
 
 class VideoEffect:

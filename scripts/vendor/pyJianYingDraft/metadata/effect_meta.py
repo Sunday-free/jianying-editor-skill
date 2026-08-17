@@ -211,7 +211,11 @@ class MaskMeta:
     default_aspect_ratio: float
     """默认宽高比(宽高都是相对素材的比例)"""
 
-    def __init__(self, name: str, resource_type: str, resource_id: str, effect_id: str, md5: str, default_aspect_ratio: float):
+    constant_material_id: str
+    """剪映素材常量 id(蒙版条目必需,不同形状不同值)"""
+
+    def __init__(self, name: str, resource_type: str, resource_id: str, effect_id: str, md5: str, default_aspect_ratio: float,
+                 constant_material_id: str = ""):
         self.name = name
         self.resource_type = resource_type
         self.resource_id = resource_id
@@ -219,6 +223,7 @@ class MaskMeta:
         self.md5 = md5
 
         self.default_aspect_ratio = default_aspect_ratio
+        self.constant_material_id = constant_material_id
 
 # 转场元数据
 class TransitionMeta:

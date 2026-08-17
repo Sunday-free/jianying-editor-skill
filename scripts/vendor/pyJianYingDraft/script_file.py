@@ -122,7 +122,7 @@ class ScriptMaterial:
             "log_color_wheels": [],
             "loudnesses": [],
             "manual_deformations": [],
-            "masks": self.masks,
+            "common_mask": self.masks,  # 剪映当前版本读 common_mask(非 masks),与手工稿一致
             "material_animations": [ani.export_json(effect_cache_root) for ani in self.animations],
             "material_colors": [],
             "multi_language_refs": [],

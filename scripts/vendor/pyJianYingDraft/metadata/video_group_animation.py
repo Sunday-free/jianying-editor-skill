@@ -131,3 +131,11 @@ class GroupAnimationType(EffectEnum):
     跳跳糖               = AnimationMeta("跳跳糖", True, 0.700, "7199944821098680890", "9432783", "fc4e0cc6a2f2c775659fa9493cff9fe8")
     闪光放大             = AnimationMeta("闪光放大", True, 0.500, "7166437469909422623", "6210029", "d73e12e5f219c298b59fcca7f34fadac")
     闪光放大_II          = AnimationMeta("闪光放大 II", True, 0.500, "7166437532568130055", "6210033", "a1a110060307fb02ef62d33d5e571789")
+
+    # 2026-08-17 补充:来自手工稿 draft_info.json material_animations 的视频组合动画
+    # (id=resource_id 同模板;md5 取自模板 path 末尾段;category_id/name 对齐模板——
+    #   category_id 非空 + effect_cache_root 注入时,export_json 会运行时探测本机 Cache 拼 path,剪映才能加载)
+    # 模板自定义组合动画:category_id 非空 → export 写 path(本机缓存)剪映才能加载
+    连续滑动             = AnimationMeta("连续滑动", True, 3.000, "7647810777344134419", "7647810777344134419", "cdbe46d098af9f80248d7df2e0d9242a", "group_fav", "收藏")
+    故障抖动             = AnimationMeta("故障抖动", True, 1.033, "7613317070419266859", "7613317070419266859", "dce7b36cc2b7fd6a67986d1d39f33516", "3342", "组合")
+    放射模糊             = AnimationMeta("放射模糊", True, 1.033, "7651552544304434478", "7651552544304434478", "873a9dd7e87bda0b5dc22387fd5f7987", "3342", "组合")

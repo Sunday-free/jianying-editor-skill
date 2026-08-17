@@ -163,3 +163,14 @@ class IntroType(EffectEnum):
     魔法粒子I            = AnimationMeta("魔法粒子I", True, 3.000, "7446622476928291379", "95912089", "5acc75119eb941cf0645b69d2d0fdc7e")
     魔法粒子II           = AnimationMeta("魔法粒子II", True, 3.000, "7446673584296038949", "95966017", "6daa910b7beacaa1fe83f0fe20a793f1")
     黑白画中画           = AnimationMeta("黑白画中画", True, 2.000, "7436273288608764442", "90036559", "3b710c8ca2702e2a42144d12ff5bd05e")
+
+    # 2026-08-17 补充:来自手工稿 draft_info.json material_animations 的图片入场动画
+    # (id=resource_id 同模板;md5 取自模板 path 末尾段;category_id/name 对齐模板「入场」——
+    #   category_id 非空 + effect_cache_root 注入时,export_json 会运行时探测本机 Cache 拼 path,剪映才能加载)
+    # 下面 3 个是模板里的「自定义」入场动画(category_id="3340"/入场非空 → 导出才写 path,
+    # 剪映按 path 加载本机缓存;删掉 category 会回到「动画丢失」。内置动画如黑白画中画
+    # category_id 空、按 resource_id 加载,是另一类,勿混)
+    # 模板自定义入场动画:category_id 非空 → export 写 path(本机缓存)剪映才能加载
+    拖影放大             = AnimationMeta("拖影放大", True, 1.500, "7647821509729340735", "7647821509729340735", "4a81b06d6296fc2ee1d264ff6d63b831", "3340", "入场")
+    滚动点击             = AnimationMeta("滚动点击", True, 0.833, "7551085667196079384", "7551085667196079384", "ec789faf84dc6c05a4f545cd48bcd31a", "3340", "入场")
+    水滴                 = AnimationMeta("水滴", True, 1.500, "7646368890221743385", "7646368890221743385", "4689e151e5578a4d25aa4a66fea019c2", "3340", "入场")
