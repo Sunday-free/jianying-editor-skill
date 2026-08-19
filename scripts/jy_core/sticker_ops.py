@@ -32,6 +32,7 @@ class StickerOpsMixin:
         scale_y: Optional[float] = None,
         rotation: float = 0.0,
         opacity: float = 1.0,
+        absolute_index: Optional[int] = 20000,
     ) -> Optional[draft.StickerSegment]:
         """
         向指定轨道添加贴纸片段。
@@ -48,6 +49,8 @@ class StickerOpsMixin:
             scale_y: 垂直缩放（覆盖 scale）
             rotation: 旋转角度（度）
             opacity: 不透明度 (0.0 ~ 1.0)
+            absolute_index: 贴纸轨道渲染层级 absolute_index（默认 20000；
+                渲染层传 40000 可盖过字幕轨 Subtitles=30000，0 可垫底）
 
         Returns:
             StickerSegment 对象，失败返回 None
@@ -55,8 +58,8 @@ class StickerOpsMixin:
         if start_time is None:
             start_time = self.get_track_duration(track_name)
 
-        # 贴纸轨道必须位于最顶层（高于字幕 text=15000），手动指定 absolute_index
-        self._ensure_track(draft.TrackType.sticker, track_name, absolute_index=20000)
+        # 贴纸轨道渲染层级由调用方指定（默认 20000；渲染层传 40000 盖过字幕 Subtitles=30000）
+        self._ensure_track(draft.TrackType.sticker, track_name, absolute_index=absolute_index)
 
         sx = scale_x if scale_x is not None else scale
         sy = scale_y if scale_y is not None else scale
