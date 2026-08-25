@@ -77,7 +77,7 @@ def _build_ssl_context() -> ssl.SSLContext:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        print("[!] WARNING: TLS verification disabled by JY_TTS_INSECURE_SSL=1", flush=True)
+        # print("[!] WARNING: TLS verification disabled by JY_TTS_INSECURE_SSL=1", flush=True)
         return ctx
     return ssl.create_default_context()
 
