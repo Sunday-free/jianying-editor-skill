@@ -94,18 +94,43 @@ class MediaOpsMixin:
         self._ensure_track(draft.TrackType.video, track_name)
 
         try:
-            fallback_duration_us = safe_tim(duration) * 10 if duration else None
-            mat = draft.VideoMaterial(media_path, duration=fallback_duration_us)
+            mat = draft.VideoMaterial(media_path)
             phys_duration = mat.duration
+            parse_error = None
         except Exception as e:
-            print(f"⚠️ VideoMaterial 解析失败（素材将被跳过）: {os.path.basename(media_path)} -> {type(e).__name__}: {e}")
-            return None
+            mat = None
+            phys_duration = 0
+            parse_error = e
 
-        if not phys_duration or phys_duration <= 0:
+        # MediaInfo 拿不到时长（异常 / 0 / 库内 10s 默认值）时用 ffprobe 兜底。
+        # ★ 绝不把「本段要用的 duration」当素材时长兜底：旧实现传 duration*10，
+        #   只是把「解析失败」伪装成一个恰好很小的正数 —— 裁到中段就抛
+        #   「截取的素材时间范围…超出了素材时长」，真因被彻底埋掉
+        #   （2026-10-29 生产实测：MediaInfo 在 C locale 下打不开中文路径，
+        #     fallback 39.09999s 顶替了真实 265.68s）。
+        # ★ 只对 video 纠偏：photo 在素材库里固定给 3h，不能被 ffprobe 的短时长覆盖。
+        if mat is None or not phys_duration or phys_duration <= 0 or (
+                getattr(mat, "material_type", "") == "video" and phys_duration == 10_000_000):
             ff_dur = get_duration_ffprobe_cached(media_path)
             if ff_dur > 0:
-                phys_duration = int(ff_dur * 1000000)
+                phys_duration = int(round(ff_dur * 1000000))
+                if mat is None:
+                    try:
+                        mat = draft.VideoMaterial(media_path, duration=phys_duration)
+                    except Exception as e2:
+                        print(f"⚠️ VideoMaterial 解析失败（素材将被跳过）: "
+                              f"{os.path.basename(media_path)} -> {type(e2).__name__}: {e2}")
+                        return None
                 mat.duration = phys_duration
+                if parse_error is not None:
+                    print(f"⚠️ MediaInfo 解析失败，已用 ffprobe 时长兜底: "
+                          f"{os.path.basename(media_path)} ({ff_dur:.2f}s) -> "
+                          f"{type(parse_error).__name__}: {parse_error}")
+
+        if not phys_duration or phys_duration <= 0:
+            print(f"⚠️ VideoMaterial 无法确定素材时长（素材将被跳过）: "
+                  f"{os.path.basename(media_path)}")
+            return None
 
         if not self._explicit_res and not self._first_video_resolved:
             if hasattr(mat, "width") and mat.width > 0:
@@ -114,6 +139,15 @@ class MediaOpsMixin:
 
         start_us = safe_tim(start_time)
         src_start_us = safe_tim(source_start)
+        # 起点已越过素材末尾：说明「素材时长」和调用方的时间轴对不上（素材被换、
+        # MediaInfo 解析错等）。这里给人话错误，而不是让 pyJianYingDraft 抛一串
+        # 只有微秒数字的 ValueError。
+        if src_start_us >= phys_duration:
+            raise ValueError(
+                f"素材裁剪起点超出素材时长：{os.path.basename(media_path)} "
+                f"素材 {phys_duration / 1000000:.2f}s，"
+                f"却要求从 {src_start_us / 1000000:.2f}s 开始裁剪"
+            )
         actual_duration = self._calculate_duration(duration, phys_duration - src_start_us)
 
         seg = draft.VideoSegment(
