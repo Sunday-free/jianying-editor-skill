@@ -18,9 +18,82 @@ def find_draft_content_path(draft_path: str) -> Optional[str]:
 
 
 # ----------------- 路径自动探测 -----------------
-def get_default_drafts_root() -> str:
-    """自动探测剪映草稿目录 (Windows / macOS 跨平台)"""
+def _is_confirmed_draft_root(path: str) -> bool:
+    """剪映会在草稿根目录放 root_meta_info.json（或 .recycle_bin），据此确认。
+
+    安装器顺手建的 `JianyingPro Drafts` 空目录不算 —— 否则会当成草稿根往里面写。
+    """
+    if not os.path.isdir(path):
+        return False
+    return (os.path.isfile(os.path.join(path, "root_meta_info.json"))
+            or os.path.isdir(os.path.join(path, ".recycle_bin")))
+
+
+def _has_draft_children(path: str) -> bool:
+    """目录下是否真的有草稿子文件夹。
+
+    ★ 重装 / 换安装盘后会出现「空壳根」：旧根里只剩 root_meta_info.json +
+      .recycle_bin，而新草稿已经落到另一个盘（实测 C 盘 com.lveditor.draft 空、
+      D 盘 JianyingPro Drafts 里有草稿）。生成草稿若写进空壳根，剪映列表里看不到。
+    """
+    try:
+        for name in os.listdir(path):
+            sub = os.path.join(path, name)
+            if name.startswith(".") or not os.path.isdir(sub):
+                continue
+            for fn in ("draft_content.json", "draft_info.json", "draft_meta_info.json"):
+                if os.path.isfile(os.path.join(sub, fn)):
+                    return True
+    except OSError:
+        return False
+    return False
+
+
+def _jianying_registry_draft_path() -> Optional[str]:
+    """草稿根**真源**：剪映「设置 → 草稿位置」记录在 HKCU 注册表里（Windows）。
+
+    ★ 比枚举盘符/目录名可靠得多：用户把草稿目录改到任意位置都能直接拿到。
+    """
     import sys as _sys
+
+    if _sys.platform != "win32":
+        return None
+    try:
+        import winreg
+
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Bytedance\JianyingPro\GlobalSettings\History",
+        ) as key:
+            for name in ("currentCustomDraftPath", "draftPath", "draft_path"):
+                try:
+                    value = winreg.QueryValueEx(key, name)[0]
+                except OSError:
+                    continue
+                if isinstance(value, str) and value.strip():
+                    path = os.path.normpath(value.strip())
+                    if os.path.isdir(path):
+                        return path
+    except Exception:  # noqa: BLE001 —— 没装剪映 / 非 Windows 都走这里
+        return None
+    return None
+
+
+def get_default_drafts_root() -> str:
+    """自动探测剪映草稿目录 (Windows / macOS 跨平台)
+
+    ★ 2026-11：安装位置与草稿位置都不再只有系统盘默认那一处。剪映允许把草稿
+      目录改到别的盘（实测重装到 D 盘后出现
+      `D:\\AppStoreSoftstore\\Install\\JianyingPro Drafts`）。
+      顺序：注册表真源 → 「真的有草稿」的候选 → 「剪映认过的」候选 → 存在的候选。
+      先挑真源/有草稿的，避免选中空壳根导致生成的草稿在剪映列表里看不到。
+    """
+    import sys as _sys
+
+    if _sys.platform == "win32":
+        reg_root = _jianying_registry_draft_path()
+        if reg_root:
+            return reg_root
 
     candidates = []
 
@@ -88,19 +161,33 @@ def get_default_drafts_root() -> str:
                 )
             )
 
+        # 草稿目录被用户/安装器挪到其它盘（含商店类安装器落盘的 JianyingPro Drafts）
+        for _letter in "CDEFGHIJKLMNOPQRSTUVWXYZ":
+            _drive = f"{_letter}:\\"
+            if not os.path.exists(_drive):
+                continue
+            candidates.append(os.path.join(_drive, "JianyingPro Drafts"))
+            candidates.append(
+                os.path.join(_drive, "AppStoreSoftstore", "Install", "JianyingPro Drafts")
+            )
+
+        # ★ 不要写死 C:\Users\Administrator —— 客户机的用户名不是这个。
         fallback = os.path.join(
-            "C:",
-            os.sep,
-            "Users",
-            "Administrator",
-            "AppData",
-            "Local",
+            local_app_data or os.path.join(os.path.expanduser("~"), "AppData", "Local"),
             "JianyingPro",
             "User Data",
             "Projects",
             "com.lveditor.draft",
         )
 
+    # ① 真的有草稿的根最优先（换盘 / 重装后旧根会剩空壳，写进去剪映看不到）
+    for path in candidates:
+        if _has_draft_children(path):
+            return path
+    # ② 其次才是「剪映认过的根」（刚装好、还没建草稿时走这条）
+    for path in candidates:
+        if _is_confirmed_draft_root(path):
+            return path
     for path in candidates:
         if os.path.exists(path):
             return path
@@ -110,10 +197,20 @@ def get_default_drafts_root() -> str:
 def get_default_cache_root() -> str:
     """自动探测剪映特效缓存目录 (Windows / macOS 跨平台)。
 
-    草稿目录与缓存目录都在 'User Data' 下互为兄弟目录
-    (Projects/com.lveditor.draft 与 Cache)，因此直接复用
-    get_default_drafts_root() 的探测结果反推 Cache 路径，无需另写一套平台分支。
+    ★ 不能只从草稿根反推：用户可以把**草稿**目录改到别的盘（如 D 盘
+      `JianyingPro Drafts`），而**缓存**仍留在 `<用户>\\AppData\\Local\\JianyingPro\\User Data\\Cache`，
+      反推会得到一个不存在的 `D:\\...\\JianyingPro Drafts\\Cache`。
+      所以先直接找 User Data\\Cache，找不到才退回「与草稿根同父级的 User Data」推导。
     """
+    import sys as _sys
+
+    if _sys.platform == "win32":
+        local = os.environ.get("LOCALAPPDATA")
+        if local:
+            direct = os.path.join(local, "JianyingPro", "User Data", "Cache")
+            if os.path.isdir(direct):
+                return direct
+
     root = get_default_drafts_root()
     if "User Data" in root:
         base = root.rsplit("User Data", 1)[0] + "User Data"
@@ -239,7 +336,10 @@ def get_duration_ffprobe_cached(file_path: str) -> float:
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            # ★ errors='replace'：中文 Windows 下 ffprobe 的输出可能是 UTF-8，
+            #   按 GBK 解码会在线程里抛 UnicodeDecodeError（表现为时长静默变 0）。
             text=True,
+            errors="replace",
             timeout=5,
         )
         return float(result.stdout.strip())
